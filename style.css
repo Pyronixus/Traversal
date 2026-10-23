@@ -1,0 +1,178 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --fg: #f6ead6;
+  --mut: #c9b293;
+  --card: rgba(34, 23, 15, 0.62);
+  --bd: rgba(255, 230, 190, 0.18);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --fg: #3a2616;
+    --mut: #6f573f;
+    --card: rgba(255, 246, 230, 0.7);
+    --bd: rgba(80, 50, 25, 0.25);
+  }
+}
+:root[data-theme="light"] {
+  --fg: #3a2616;
+  --mut: #6f573f;
+  --card: rgba(255, 246, 230, 0.7);
+  --bd: rgba(80, 50, 25, 0.25);
+}
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+  background: #1a110b;
+}
+body {
+  color: var(--fg);
+  font:
+    500 15px/1.4 Texturina,
+    cursive;
+}
+canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  display: block;
+}
+#game-hud {
+  position: fixed;
+  left: 18px;
+  top: calc(env(safe-area-inset-top, 0px) + 14px);
+  pointer-events: none;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.25);
+}
+h1 {
+  margin: 0 0 4px;
+  font:
+    600 30px/1 Angel wish,
+    cursive;
+  letter-spacing: 0.05em;
+}
+#game-status {
+  font-weight: 600;
+}
+#game-score,
+#piece-info {
+  color: var(--mut);
+  font-size: 13px;
+  margin-top: 2px;
+}
+#game-toolbar {
+  position: fixed;
+  right: 12px;
+  top: calc(env(safe-area-inset-top, 0px) + 12px);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 68vw;
+}
+button {
+  background: var(--card);
+  color: var(--fg);
+  border: 1px solid var(--bd);
+  border-radius: 999px;
+  padding: 5px 9px;
+  font:
+    500 12px/1.2 Texturina,
+    cursive;
+  white-space: nowrap;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  transition:
+    transform 0.15s,
+    border-color 0.15s;
+}
+button:hover {
+  border-color: var(--mut);
+  transform: translateY(-1px);
+}
+#rules-help {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+  margin: 0;
+  text-align: center;
+  color: var(--mut);
+  font-size: 12.5px;
+  padding: 0 16px;
+  pointer-events: none;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+}
+
+/* Skin selector: matches the glass-like finish of the game buttons. */
+#skinControl {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  color: var(--fg);
+  background: var(--card);
+  border: 1px solid var(--bd);
+  border-radius: 999px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-size: 11.5px;
+}
+
+#skinPicker {
+  max-width: 145px;
+  min-width: 0;
+  padding: 0 1px;
+  color: var(--fg);
+  background: transparent;
+  border: 0;
+  outline-offset: 3px;
+  font: inherit;
+  cursor: pointer;
+}
+
+#skinPicker option {
+  color: #f6ead6;
+  background: #26190f;
+}
+
+@media (max-width: 760px) {
+  #game-toolbar {
+    right: 8px;
+    top: calc(env(safe-area-inset-top, 0px) + 8px);
+    max-width: 74vw;
+    gap: 4px;
+  }
+
+  #skinControl {
+    gap: 4px;
+    padding: 4px 6px;
+  }
+
+  #skinPicker {
+    max-width: 108px;
+    font-size: 11px;
+  }
+
+  button {
+    padding: 4px 7px;
+    font-size: 11px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button {
+    transition: none;
+  }
+}

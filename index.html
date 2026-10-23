@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <link
+      href="https://db.onlinewebfonts.com/c/4436831bf55ad5a226304062ef652cb9?family=Angel+wish"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Texturina"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="assets/icon.png" type="image/png" />
+    <link rel="stylesheet" href="style.css" />
+    <title>Traversal</title>
+  </head>
+  <body>
+    <canvas id="game-canvas"></canvas>
+    <div id="game-hud">
+      <h1>Traversal</h1>
+      <div id="game-status"></div>
+      <div id="game-score"></div>
+      <div id="piece-info"></div>
+    </div>
+    <div id="game-toolbar">
+      <label id="skinControl" for="skinPicker">
+        Skin
+        <select id="skinPicker" aria-label="Choose a piece skin">
+          <option value="wood">Classic Wood</option>
+          <option value="obsidian">Obsidian</option>
+          <option value="marble">Imperial Marble</option>
+          <option value="jade">Imperial Jade</option>
+          <option value="chrome">Polar Chrome</option>
+          <option value="bronze">Antique Bronze</option>
+          <option value="neon">Neon</option>
+        </select>
+      </label>
+      <button id="new-board-button">New Board</button>
+      <button id="game-mode-button">Mode: Bot</button>
+      <button id="sound-toggle-button">Sound: On</button>
+    </div>
+    <p id="rules-help">
+      Move cost = 1 + absolute height difference. Attack when strength ≥
+      defense. Exit through the opposite edge: a Sentinel exiting first wins;
+      otherwise, the game ends after two exits and the higher score wins.
+    </p>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script type="module" src="script.js"></script>
+  </body>
+</html>
