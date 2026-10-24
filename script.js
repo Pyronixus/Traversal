@@ -276,7 +276,6 @@ const prefersDarkColorScheme = matchMedia(
 const gameCanvas = getElement("game-canvas"),
   webGLRenderer = new THREE.WebGLRenderer({
     canvas: gameCanvas,
-    // Final-canvas antialiasing complements the off-screen scene.
     antialias: true,
     powerPreference: "high-performance",
   });
@@ -288,7 +287,6 @@ const gameScene = new THREE.Scene(),
   gameCamera = new THREE.PerspectiveCamera(38, 1, 0.1, 120);
 gameScene.fog = new THREE.Fog(sceneBackgroundColor, 26, 62);
 let sceneRenderTarget,
-  // Native resolution or HiDPI up to 2x, then adjusted according to frame rate.
   renderResolutionScale = Math.min(
     Math.max(window.devicePixelRatio || 1, 1),
     2,
@@ -308,7 +306,6 @@ const postProcessingMaterial = new THREE.ShaderMaterial({
  void main(){
   vec3 center=texture2D(tD,v).rgb;
   vec3 neighbours=(texture2D(tD,v+vec2(px.x,0.)).rgb+texture2D(tD,v-vec2(px.x,0.)).rgb+texture2D(tD,v+vec2(0.,px.y)).rgb+texture2D(tD,v-vec2(0.,px.y)).rgb)*.25;
-  // Subtle sharpening strengthens edges without adding blur or pronounced halos.
   vec3 col=clamp(center+(center-neighbours)*.22,0.,1.);
   float vignette=smoothstep(1.12,.28,length((v-.5)*vec2(1.08,1.)));
   col*=mix(.9,1.,vignette);
@@ -346,7 +343,6 @@ function resizeRenderer() {
         magFilter: THREE.LinearFilter,
       });
   if (webGLRenderer.capabilities.isWebGL2) {
-    // 4x MSAA reduces jagged edges on the pieces and board.
     sceneRenderTarget.samples = Math.min(
       4,
       webGLRenderer.capabilities.maxSamples || 4,
@@ -370,7 +366,6 @@ function resizeRenderer() {
   gr.addColorStop(1, "#171a25");
   x.fillStyle = gr;
   x.fillRect(0, 0, 512, 256);
-  // Softbox reflections give chrome and polished stones visible, broad highlights.
   for (const [panelX, panelWidth, panelColor] of [
     [38, 34, "rgba(255,250,238,.86)"],
     [142, 20, "rgba(180,220,255,.7)"],
@@ -509,7 +504,6 @@ const createWoodMaterial = (baseColor, grainColor) => {
   return new THREE.MeshPhysicalMaterial({
     map: woodTexture,
     bumpMap: woodTexture,
-    // Bump map reduced to keep the wood polished rather than visibly rough.
     bumpScale: 0.14,
     roughness: 0.25,
     metalness: 0.04,
@@ -539,7 +533,6 @@ function createMarbleTexture(baseColor, veinColor) {
   textureContext.fillStyle = baseColor;
   textureContext.fillRect(0, 0, textureSize, textureSize);
 
-  // Layered, high-resolution mineral veins with subtle secondary branches.
   for (let veinIndex = 0; veinIndex < 64; veinIndex++) {
     const startingY = Math.random() * textureSize;
     const phase = Math.random() * Math.PI * 2;
@@ -610,7 +603,6 @@ function createFinishTexture(baseColor, detailColor, finish) {
     depthGradient.addColorStop(1, "rgba(0,0,0,.62)");
     ctx.fillStyle = depthGradient;
     ctx.fillRect(0, 0, textureSize, textureSize);
-    // Thin volcanic-glass fractures with a restrained violet/ice-blue inner glow.
     for (let crackIndex = 0; crackIndex < 72; crackIndex++) {
       let x = Math.random() * textureSize;
       let y = Math.random() * textureSize;
@@ -662,7 +654,6 @@ function createFinishTexture(baseColor, detailColor, finish) {
       ctx.stroke();
     }
   } else if (finish === "chrome") {
-    // Broad, soft studio-strip reflections read as polished chrome rather than flat grey.
     const metalGradient = ctx.createLinearGradient(
       0,
       0,
@@ -1246,7 +1237,6 @@ function createRoundedPolygonShape(n, Rd, rr, rot) {
   return s;
 }
 function smoothGeometryNormals(geometry) {
-  // Average coincident vertex normals without merging UVs or texture seams.
   geometry.computeVertexNormals();
 
   const positionAttribute = geometry.attributes.position;
@@ -2113,12 +2103,10 @@ function animatePieceMove(pc, m, cb) {
       const currentSurfaceHeight =
         terrainSurfaceHeight + startingLiftOffset * (1 - easedProgress);
 
-      // Keep the base close to the terrain. No hop, squash, or mid-move spin.
       movingPiece.position.set(currentX, currentSurfaceHeight, currentZ);
       movingPiece.rotation.set(0, originalRotationY, 0);
       movingPiece.scale.setScalar(1);
 
-      // A sparse, subtle trail preserves the effect without spawning particles every frame.
       if (Math.random() < 0.09) {
         emitSparkEffect(
           movingPiece.position.clone().setY(currentSurfaceHeight + 0.12),
@@ -2349,26 +2337,28 @@ getElement("new-board-button").onclick = () => {
   audioEnabledByUser = true;
   initializeGame();
 };
+const BOT_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path fill="currentColor" d="M352 64C352 46.3 337.7 32 320 32C302.3 32 288 46.3 288 64L288 128L192 128C139 128 96 171 96 224L96 448C96 501 139 544 192 544L448 544C501 544 544 501 544 448L544 224C544 171 501 128 448 128L352 128L352 64zM160 432C160 418.7 170.7 408 184 408L216 408C229.3 408 240 418.7 240 432C240 445.3 229.3 456 216 456L184 456C170.7 456 160 445.3 160 432zM280 432C280 418.7 290.7 408 304 408L336 408C349.3 408 360 418.7 360 432C360 445.3 349.3 456 336 456L304 456C290.7 456 280 445.3 280 432zM400 432C400 418.7 410.7 408 424 408L456 408C469.3 408 480 418.7 480 432C480 445.3 469.3 456 456 456L424 456C410.7 456 400 445.3 400 432zM224 240C250.5 240 272 261.5 272 288C272 314.5 250.5 336 224 336C197.5 336 176 314.5 176 288C176 261.5 197.5 240 224 240zM368 288C368 261.5 389.5 240 416 240C442.5 240 464 261.5 464 288C464 314.5 442.5 336 416 336C389.5 336 368 314.5 368 288zM64 288C64 270.3 49.7 256 32 256C14.3 256 0 270.3 0 288L0 384C0 401.7 14.3 416 32 416C49.7 416 64 401.7 64 384L64 288zM608 256C590.3 256 576 270.3 576 288L576 384C576 401.7 590.3 416 608 416C625.7 416 640 401.7 640 384L640 288C640 270.3 625.7 256 608 256z"/></svg>`;
+const PLAYERS_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640"><path fill="currentColor" d="M96 192C96 130.1 146.1 80 208 80C269.9 80 320 130.1 320 192C320 253.9 269.9 304 208 304C146.1 304 96 253.9 96 192zM32 528C32 430.8 110.8 352 208 352C305.2 352 384 430.8 384 528L384 534C384 557.2 365.2 576 342 576L74 576C50.8 576 32 557.2 32 534L32 528zM464 128C517 128 560 171 560 224C560 277 517 320 464 320C411 320 368 277 368 224C368 171 411 128 464 128zM464 368C543.5 368 608 432.5 608 512L608 534.4C608 557.4 589.4 576 566.4 576L421.6 576C428.2 563.5 432 549.2 432 534L432 528C432 476.5 414.6 429.1 385.5 391.3C408.1 376.6 435.1 368 464 368z"/></svg>`;
 getElement("game-mode-button").onclick = (e) => {
   audioEnabledByUser = true;
   GAME_MODE = 3 - GAME_MODE;
-  e.target.textContent = "Mode: " + (GAME_MODE == 1 ? "Bot" : "2 Players");
+  e.currentTarget.innerHTML = GAME_MODE == 1 ? BOT_SVG : PLAYERS_SVG;
   initializeGame();
 };
 getElement("sound-toggle-button").onclick = (e) => {
   isMuted = !isMuted;
-  e.target.textContent = "Sound: " + (isMuted ? "Off" : "On");
+  const button = e.currentTarget;
+
+  if (isMuted) {
+    button.innerHTML = `<svg id="sound-toggle-btn" data-state="mute" class="sound-toggle-btn" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
+        <path fill="currentColor" d="M80 416L128 416L262.1 535.2C268.5 540.9 276.7 544 285.2 544C304.4 544 320 528.4 320 509.2L320 130.8C320 111.6 304.4 96 285.2 96C276.7 96 268.5 99.1 262.1 104.8L128 224L80 224C53.5 224 32 245.5 32 272L32 368C32 394.5 53.5 416 80 416zM399 239C389.6 248.4 389.6 263.6 399 272.9L446 319.9L399 366.9C389.6 376.3 389.6 391.5 399 400.8C408.4 410.1 423.6 410.2 432.9 400.8L479.9 353.8L526.9 400.8C536.3 410.2 551.5 410.2 560.8 400.8C570.1 391.4 570.2 376.2 560.8 366.9L513.8 319.9L560.8 272.9C570.2 263.5 570.2 248.3 560.8 239C551.4 229.7 536.2 229.6 526.9 239L479.9 286L432.9 239C423.5 229.6 408.3 229.6 399 239z"/>
+      </svg>`;
+  } else {
+    button.innerHTML = `<svg id="sound-toggle-btn" data-state="on" class="sound-toggle-btn" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
+        <path fill="currentColor" d="M112 416L160 416L294.1 535.2C300.5 540.9 308.7 544 317.2 544C336.4 544 352 528.4 352 509.2L352 130.8C352 111.6 336.4 96 317.2 96C308.7 96 300.5 99.1 294.1 104.8L160 224L112 224C85.5 224 64 245.5 64 272L64 368C64 394.5 85.5 416 112 416zM505.1 171C494.8 162.6 479.7 164.2 471.3 174.5C462.9 184.8 464.5 199.9 474.8 208.3C507.3 234.7 528 274.9 528 320C528 365.1 507.3 405.3 474.8 431.8C464.5 440.2 463 455.3 471.3 465.6C479.6 475.9 494.8 477.4 505.1 469.1C548.3 433.9 576 380.2 576 320.1C576 260 548.3 206.3 505.1 171.1zM444.6 245.5C434.3 237.1 419.2 238.7 410.8 249C402.4 259.3 404 274.4 414.3 282.8C425.1 291.6 432 305 432 320C432 335 425.1 348.4 414.3 357.3C404 365.7 402.5 380.8 410.8 391.1C419.1 401.4 434.3 402.9 444.6 394.6C466.1 376.9 480 350.1 480 320C480 289.9 466.1 263.1 444.5 245.5z"/>
+      </svg>`;
+  }
 };
-const skinPicker = getElement("skinPicker");
-if (skinPicker) {
-  skinPicker.value = activeSkinId;
-  skinPicker.addEventListener("change", (event) => {
-    const requestedSkinId = event.target.value;
-    if (!PIECE_SKINS[requestedSkinId]) return;
-    activeSkinId = requestedSkinId;
-    applySkinToAllPieces();
-  });
-}
 addEventListener("resize", resizeRenderer);
 
 let last = performance.now(),
@@ -2506,5 +2496,329 @@ let last = performance.now(),
   postProcessingMaterial.uniforms.tD.value = sceneRenderTarget.texture;
   webGLRenderer.render(postProcessingScene, postProcessingCamera);
 })(performance.now());
+/* ---------- Skin modal (one isolated, on-demand preview renderer) ---------- */
+const skinModal = getElement("skin-modal");
+const skinGrid = getElement("skin-options-grid");
+const SKIN_PREVIEW_SIZE = 144;
+const SKIN_PREVIEW_FRAME_INTERVAL = 1000 / 30;
+const SKIN_PREVIEW_ROTATION_SPEED = 0.16;
+let skinModalOpen = false;
+let skinPreviewRenderer = null;
+let skinPreviewAccentMaterial = null;
+let skinPreviewEnvironmentTexture = null;
+let skinPreviewFrameId = 0;
+let lastSkinPreviewFrame = 0;
+let skinPreviewStartTime = 0;
+let activeSkinPreviews = [];
+
+function stopSkinPreviewLoop() {
+  if (skinPreviewFrameId) cancelAnimationFrame(skinPreviewFrameId);
+  skinPreviewFrameId = 0;
+  lastSkinPreviewFrame = 0;
+}
+
+function destroySkinPreviews() {
+  stopSkinPreviewLoop();
+  activeSkinPreviews = [];
+
+  if (skinPreviewRenderer) {
+    skinPreviewRenderer.dispose();
+    skinPreviewRenderer.forceContextLoss();
+    skinPreviewRenderer = null;
+  }
+
+  if (skinPreviewAccentMaterial) {
+    skinPreviewAccentMaterial.dispose();
+    skinPreviewAccentMaterial = null;
+  }
+  if (skinPreviewEnvironmentTexture) {
+    skinPreviewEnvironmentTexture.dispose();
+    skinPreviewEnvironmentTexture = null;
+  }
+}
+
+function createSkinPreviewEnvironment() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 512;
+  canvas.height = 256;
+  const context = canvas.getContext("2d");
+  const gradient = context.createLinearGradient(0, 0, 0, canvas.height);
+  gradient.addColorStop(0, "#fff5e7");
+  gradient.addColorStop(0.3, "#c9b9a3");
+  gradient.addColorStop(0.58, "#5d5149");
+  gradient.addColorStop(1, "#151923");
+  context.fillStyle = gradient;
+  context.fillRect(0, 0, canvas.width, canvas.height);
+
+  for (const [x, width, color] of [
+    [42, 34, "rgba(255,255,255,.95)"],
+    [142, 18, "rgba(175,215,255,.75)"],
+    [244, 42, "rgba(255,248,232,.98)"],
+    [369, 22, "rgba(255,190,122,.78)"],
+    [454, 28, "rgba(226,239,255,.86)"],
+  ]) {
+    const strip = context.createLinearGradient(x, 0, x + width, 0);
+    strip.addColorStop(0, "rgba(255,255,255,0)");
+    strip.addColorStop(0.5, color);
+    strip.addColorStop(1, "rgba(255,255,255,0)");
+    context.fillStyle = strip;
+    context.fillRect(x, 18, width, 220);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.mapping = THREE.EquirectangularReflectionMapping;
+  texture.encoding = THREE.sRGBEncoding;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function updateSkinSelection() {
+  if (!skinGrid) return;
+  skinGrid.querySelectorAll(".skin-card").forEach((card) => {
+    const selected = card.dataset.skinId === activeSkinId;
+    card.classList.toggle("selected", selected);
+    card.setAttribute("aria-pressed", String(selected));
+  });
+}
+
+function createSkinPreviewScene(skinId, index) {
+  const scene = new THREE.Scene();
+  scene.environment = skinPreviewEnvironmentTexture;
+
+  const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 30);
+  camera.position.set(2.15, 1.85, 3.7);
+  camera.lookAt(0, 0.55, 0);
+
+  scene.add(new THREE.AmbientLight(0xffffff, 1.25));
+  const keyLight = new THREE.DirectionalLight(0xfff0dc, 2.0);
+  keyLight.position.set(3, 5, 4);
+  scene.add(keyLight);
+  const rimLight = new THREE.DirectionalLight(0xc9ddff, 0.65);
+  rimLight.position.set(-3, 2.5, -3);
+  scene.add(rimLight);
+
+  const pieceGroup = new THREE.Group();
+  const materials = PIECE_SKINS[skinId].players[0];
+  const bodyMesh = new THREE.Mesh(basePieceGeometries.s, materials.body);
+  const insetMesh = new THREE.Mesh(insetPieceGeometries.s, materials.inset);
+  insetMesh.position.y = PIECE_SHAPE_SPECIFICATIONS.s.pieceHeight + 0.1 - 0.015;
+  pieceGroup.add(bodyMesh, insetMesh);
+  const topTrim = new THREE.Mesh(topTrimRingGeometries.s, skinPreviewAccentMaterial);
+  topTrim.rotation.x = Math.PI / 2;
+  topTrim.position.y = PIECE_SHAPE_SPECIFICATIONS.s.pieceHeight + 0.105;
+  pieceGroup.add(topTrim);
+
+  for (let markerIndex = 0; markerIndex < PIECE_STRENGTH.s; markerIndex++) {
+    const marker = new THREE.Mesh(strengthMarkerGeometry, skinPreviewAccentMaterial);
+    marker.position.set(
+      (markerIndex - (PIECE_STRENGTH.s - 1) / 2) * 0.08,
+      PIECE_SHAPE_SPECIFICATIONS.s.pieceHeight + 0.14,
+      0,
+    );
+    pieceGroup.add(marker);
+  }
+
+  pieceGroup.rotation.x = -0.09;
+  pieceGroup.rotation.z = 0.065;
+  pieceGroup.rotation.y = 0.45 + index * 0.12;
+  scene.add(pieceGroup);
+
+  return {
+    canvas: skinGrid.querySelector(`[data-preview-skin="${skinId}"]`),
+    context: skinGrid.querySelector(`[data-preview-skin="${skinId}"]`)?.getContext("2d"),
+    scene,
+    camera,
+    pieceGroup,
+    initialYaw: pieceGroup.rotation.y,
+  };
+}
+
+function renderSkinPreviewFrame(now) {
+  skinPreviewFrameId = 0;
+  if (!skinModalOpen || document.hidden || !skinPreviewRenderer || !activeSkinPreviews.length) {
+    return;
+  }
+
+  if (lastSkinPreviewFrame && now - lastSkinPreviewFrame < SKIN_PREVIEW_FRAME_INTERVAL) {
+    skinPreviewFrameId = requestAnimationFrame(renderSkinPreviewFrame);
+    return;
+  }
+
+  if (!skinPreviewStartTime) skinPreviewStartTime = now;
+  const elapsedSeconds = (now - skinPreviewStartTime) / 1000;
+
+  for (const preview of activeSkinPreviews) {
+    if (!preview.canvas || !preview.context) continue;
+
+    preview.pieceGroup.rotation.y =
+      preview.initialYaw + elapsedSeconds * SKIN_PREVIEW_ROTATION_SPEED;
+
+    skinPreviewRenderer.render(preview.scene, preview.camera);
+    preview.context.clearRect(0, 0, SKIN_PREVIEW_SIZE, SKIN_PREVIEW_SIZE);
+    preview.context.drawImage(
+      skinPreviewRenderer.domElement,
+      0,
+      0,
+      SKIN_PREVIEW_SIZE,
+      SKIN_PREVIEW_SIZE,
+    );
+  }
+
+  lastSkinPreviewFrame = now;
+  skinPreviewFrameId = requestAnimationFrame(renderSkinPreviewFrame);
+}
+
+function startSkinPreviewLoop() {
+  if (
+    !skinModalOpen ||
+    document.hidden ||
+    !skinPreviewRenderer ||
+    !activeSkinPreviews.length ||
+    skinPreviewFrameId
+  ) return;
+
+  skinPreviewStartTime = performance.now();
+  lastSkinPreviewFrame = 0;
+  skinPreviewFrameId = requestAnimationFrame(renderSkinPreviewFrame);
+}
+
+function renderSkinModalOptions() {
+  if (!skinGrid || !skinModalOpen) return;
+
+  destroySkinPreviews();
+  skinGrid.replaceChildren();
+
+  Object.entries(PIECE_SKINS).forEach(([id, skin]) => {
+    const card = document.createElement("div");
+    card.className = `skin-card${id === activeSkinId ? " selected" : ""}`;
+    card.dataset.skinId = id;
+    card.setAttribute("role", "button");
+    card.setAttribute("tabindex", "0");
+    card.setAttribute("aria-label", `Select ${skin.label} Sentinel skin`);
+    card.setAttribute("aria-pressed", String(id === activeSkinId));
+
+    const canvas = document.createElement("canvas");
+    canvas.className = "skin-preview-canvas";
+    canvas.width = SKIN_PREVIEW_SIZE;
+    canvas.height = SKIN_PREVIEW_SIZE;
+    canvas.dataset.previewSkin = id;
+    canvas.setAttribute("aria-hidden", "true");
+
+    const name = document.createElement("div");
+    name.className = "skin-name";
+    name.textContent = skin.label;
+
+    card.append(canvas, name);
+    card.addEventListener("click", () => selectSkin(id));
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        selectSkin(id);
+      }
+    });
+    skinGrid.appendChild(card);
+  });
+  try {
+    skinPreviewRenderer = new THREE.WebGLRenderer({
+      canvas: document.createElement("canvas"),
+      alpha: true,
+      antialias: true,
+      powerPreference: "low-power",
+      preserveDrawingBuffer: true,
+    });
+    skinPreviewRenderer.setPixelRatio(1);
+    skinPreviewRenderer.setSize(SKIN_PREVIEW_SIZE, SKIN_PREVIEW_SIZE, false);
+    skinPreviewRenderer.outputEncoding = THREE.sRGBEncoding;
+    skinPreviewRenderer.setClearColor(0x000000, 0);
+    skinPreviewEnvironmentTexture = createSkinPreviewEnvironment();
+
+    skinPreviewAccentMaterial = createSkinMaterial({
+      color: "#1a1d24",
+      finish: "metal",
+      roughness: 0.35,
+      metalness: 0.85,
+      clearcoat: 0.3,
+    });
+
+    let index = 0;
+    for (const id of Object.keys(PIECE_SKINS)) {
+      const preview = createSkinPreviewScene(id, index++);
+      if (preview.canvas && preview.context) activeSkinPreviews.push(preview);
+    }
+    startSkinPreviewLoop();
+  } catch (error) {
+    console.warn("Skin previews could not be initialized:", error);
+    destroySkinPreviews();
+  }
+
+  updateSkinSelection();
+}
+
+function selectSkin(skinId) {
+  if (!PIECE_SKINS[skinId]) return;
+
+  activeSkinId = skinId;
+  applySkinToAllPieces();
+  playSelectionSound();
+  window.CloseSkinModal();
+}
+
+window.OpenSkinModal = function () {
+  if (!skinModal || skinModalOpen) return;
+  audioEnabledByUser = true;
+  skinModalOpen = true;
+  skinModal.classList.add("active");
+  skinModal.setAttribute("aria-hidden", "false");
+  renderSkinModalOptions();
+  getElement("close-skin-modal-button")?.focus({ preventScroll: true });
+};
+
+window.CloseSkinModal = function () {
+  if (!skinModal || !skinModalOpen) return;
+  skinModalOpen = false;
+  skinModal.classList.remove("active");
+  skinModal.setAttribute("aria-hidden", "true");
+  destroySkinPreviews();
+  getElement("skin-modal-button")?.focus({ preventScroll: true });
+};
+
+skinModal?.addEventListener("transitionend", (event) => {
+  if (
+    event.target === skinModal &&
+    event.propertyName === "opacity" &&
+    !skinModalOpen
+  ) skinGrid?.replaceChildren();
+});
+skinModal?.addEventListener("click", (event) => {
+  if (event.target === skinModal) window.CloseSkinModal();
+});
+document.addEventListener("keydown", (event) => {
+  if (!skinModalOpen) return;
+  if (event.key === "Escape") {
+    window.CloseSkinModal();
+    return;
+  }
+  if (event.key !== "Tab") return;
+
+  const focusable = [...skinModal.querySelectorAll(
+    '#close-skin-modal-button, .skin-card[tabindex="0"]',
+  )];
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+});
+document.addEventListener("visibilitychange", () => {
+  if (!skinModalOpen) return;
+  if (document.hidden) stopSkinPreviewLoop();
+  else startSkinPreviewLoop();
+});
+
 resizeRenderer();
 initializeGame();
