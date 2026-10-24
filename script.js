@@ -2820,5 +2820,666 @@ document.addEventListener("visibilitychange", () => {
   else startSkinPreviewLoop();
 });
 
+/* ---------- Interactive rules tutorial (isolated, on-demand Three.js scene) ---------- */
+const rulesModal = getElement("rules-modal");
+const rulesTrack = getElement("rules-track");
+const rulesSlides = rulesTrack ? [...rulesTrack.querySelectorAll(".rules-slide")] : [];
+const RULES_SKIP_STORAGE_KEY = "traversal.rules.skipStartup";
+let rulesModalOpen = false;
+let rulesCurrentIndex = 0;
+let rulesVisualRenderer = null;
+let rulesVisualScene = null;
+let rulesVisualCamera = null;
+let rulesVisualRoot = null;
+let rulesVisualCanvas = null;
+let rulesVisualEnvironmentTexture = null;
+let rulesVisualDrag = null;
+let rulesScrollTimer = 0;
+
+function readRulesSkipPreference() {
+  try {
+    return window.localStorage.getItem(RULES_SKIP_STORAGE_KEY) === "true";
+  } catch (_) {
+    return false;
+  }
+}
+
+function writeRulesSkipPreference(enabled) {
+  try {
+    if (enabled) window.localStorage.setItem(RULES_SKIP_STORAGE_KEY, "true");
+    else window.localStorage.removeItem(RULES_SKIP_STORAGE_KEY);
+  } catch (error) {
+    console.warn("Could not save the rules startup preference:", error);
+  }
+}
+
+function updateRulesNavigation() {
+  const count = rulesSlides.length || 8;
+  const current = Math.max(0, Math.min(count - 1, rulesCurrentIndex));
+  const stepCount = getElement("rules-step-count");
+  const navigationCount = getElement("rules-navigation-count");
+  const progressFill = getElement("rules-progress-fill");
+  const progressTrack = rulesModal?.querySelector(".rules-progress-track");
+  const previous = getElement("rules-prev-button");
+  const next = getElement("rules-next-button");
+
+  if (stepCount) stepCount.textContent = `${String(current + 1).padStart(2, "0")} / ${String(count).padStart(2, "0")}`;
+  if (navigationCount) navigationCount.textContent = `${current + 1} / ${count}`;
+  if (progressFill) progressFill.style.width = `${((current + 1) / count) * 100}%`;
+  if (progressTrack) progressTrack.setAttribute("aria-valuenow", String(current + 1));
+  if (previous) previous.disabled = current === 0;
+  if (next) next.disabled = current === count - 1;
+}
+
+function goToRulesSlide(index, smooth = true) {
+  if (!rulesSlides.length || !rulesTrack) return;
+  rulesCurrentIndex = Math.max(0, Math.min(rulesSlides.length - 1, index));
+  updateRulesNavigation();
+  const target = rulesSlides[rulesCurrentIndex];
+  rulesTrack.scrollTo({ left: rulesCurrentIndex * rulesTrack.clientWidth, behavior: smooth ? "smooth" : "auto" });
+  scheduleRulesVisualRefresh(smooth ? 260 : 0);
+}
+
+function scheduleRulesVisualRefresh(delay = 140) {
+  if (!rulesModalOpen) return;
+  if (rulesScrollTimer) clearTimeout(rulesScrollTimer);
+  rulesScrollTimer = window.setTimeout(() => {
+    rulesScrollTimer = 0;
+    if (!rulesTrack || !rulesSlides.length) return;
+    const settledIndex = Math.max(0, Math.min(rulesSlides.length - 1, Math.round(rulesTrack.scrollLeft / Math.max(1, rulesTrack.clientWidth))));
+    if (settledIndex !== rulesCurrentIndex) {
+      rulesCurrentIndex = settledIndex;
+      updateRulesNavigation();
+    }
+    if (rulesModalOpen && !document.hidden) renderRulesVisualForCurrentSlide();
+  }, delay);
+}
+
+function disposeRulesScene(scene) {
+  if (!scene) return;
+  const geometries = new Set();
+  const materials = new Set();
+  scene.traverse((object) => {
+    // Actual gameplay piece clones share their geometry and skin materials with
+    // PIECE_MESHES. Disposing them here would break the running game.
+    if (object.userData?.rulesSharedAsset) return;
+    if (object.geometry) geometries.add(object.geometry);
+    if (object.material) {
+      if (Array.isArray(object.material)) object.material.forEach((material) => materials.add(material));
+      else materials.add(object.material);
+    }
+  });
+  geometries.forEach((geometry) => geometry.dispose());
+  materials.forEach((material) => material.dispose());
+}
+
+function disposeRulesVisualScene() {
+  disposeRulesScene(rulesVisualScene);
+  rulesVisualScene = null;
+  rulesVisualCamera = null;
+  rulesVisualRoot = null;
+}
+
+function destroyRulesVisualRenderer() {
+  disposeRulesVisualScene();
+  if (rulesVisualCanvas) {
+    rulesVisualCanvas.removeEventListener("pointerdown", onRulesVisualPointerDown);
+    rulesVisualCanvas.removeEventListener("pointermove", onRulesVisualPointerMove);
+    rulesVisualCanvas.removeEventListener("pointerup", onRulesVisualPointerUp);
+    rulesVisualCanvas.removeEventListener("pointercancel", onRulesVisualPointerUp);
+    rulesVisualCanvas.remove();
+    rulesVisualCanvas = null;
+  }
+  if (rulesVisualRenderer) {
+    rulesVisualRenderer.dispose();
+    rulesVisualRenderer.forceContextLoss();
+    rulesVisualRenderer = null;
+  }
+  if (rulesVisualEnvironmentTexture) {
+    rulesVisualEnvironmentTexture.dispose();
+    rulesVisualEnvironmentTexture = null;
+  }
+  rulesVisualDrag = null;
+}
+
+function makeRulesMaterial(color, options = {}) {
+  return new THREE.MeshStandardMaterial({
+    color,
+    roughness: options.roughness ?? 0.55,
+    metalness: options.metalness ?? 0.12,
+    emissive: options.emissive ?? 0x000000,
+    emissiveIntensity: options.emissiveIntensity ?? 0,
+    transparent: options.transparent ?? false,
+    opacity: options.opacity ?? 1,
+    side: THREE.DoubleSide,
+  });
+}
+
+function addRulesMesh(parent, geometry, material, x, y, z) {
+  const mesh = new THREE.Mesh(geometry, material);
+  mesh.position.set(x, y, z);
+  parent.add(mesh);
+  return mesh;
+}
+
+function rulesTileHeight(level) {
+  // Match the live game's coordinate system exactly.
+  return BOARD_BASE_HEIGHT + level * TERRAIN_HEIGHT_SCALE;
+}
+
+function rulesGridPoint(row, col, size, cell, level = 0) {
+  return {
+    x: (col - (size - 1) / 2) * cell,
+    y: rulesTileHeight(level),
+    z: (row - (size - 1) / 2) * cell,
+  };
+}
+
+function cloneRulesSharedModel(root, source) {
+  if (!source) return null;
+  const clone = source.clone(true);
+  clone.traverse((object) => {
+    // A clone has its own transforms, but borrows the game's geometry/materials.
+    // Mark every descendant so tutorial cleanup never disposes live-game assets.
+    object.userData.rulesSharedAsset = true;
+    if (object.isMesh) {
+      object.castShadow = false;
+      object.receiveShadow = false;
+    }
+  });
+  root.add(clone);
+  return clone;
+}
+
+function addRulesGround(root) {
+  const table = GAME_WORLD?.children?.find(
+    (object) => object.isMesh && object.geometry?.type === "PlaneGeometry" && object.geometry.parameters?.width === 90,
+  );
+  if (!table) return null;
+  const clone = cloneRulesSharedModel(root, table);
+  clone.position.set(0, 0, 0);
+  return clone;
+}
+
+function addRulesBoard(root, size, options = {}) {
+  const cell = options.cell ?? (size >= 9 ? 0.68 : 0.9);
+  const heightAt = options.heightAt ?? (() => 0);
+  const originMap = [];
+
+  // Use the game's existing table and frame, not tutorial-made substitutes.
+  addRulesGround(root);
+  const frame = GAME_WORLD?.children?.find(
+    (object) => object.isMesh && object.geometry?.type === "BoxGeometry" && (object.geometry.parameters?.width ?? 0) > BOARD_SIZE,
+  );
+  if (frame) {
+    const frameClone = cloneRulesSharedModel(root, frame);
+    const frameScale = (size + 0.7) * cell / (BOARD_SIZE + 0.7);
+    frameClone.scale.set(frameScale, 1, frameScale);
+    frameClone.position.set(0, frame.position.y, 0);
+  }
+
+  for (let r = 0; r < size; r++) {
+    originMap[r] = [];
+    for (let c = 0; c < size; c++) {
+      const level = Math.max(0, Math.min(3, Math.round(heightAt(r, c))));
+      originMap[r][c] = level;
+      const sourceCandidates = [];
+      for (let sourceR = 0; sourceR < BOARD_SIZE; sourceR++) {
+        for (let sourceC = 0; sourceC < BOARD_SIZE; sourceC++) {
+          if (
+            TERRAIN_HEIGHTS?.[sourceR]?.[sourceC] === level &&
+            (sourceR + sourceC) % 2 === (r + c) % 2 &&
+            TERRAIN_TILE_MESHES?.[sourceR]?.[sourceC]
+          ) {
+            sourceCandidates.push(TERRAIN_TILE_MESHES[sourceR][sourceC]);
+          }
+        }
+      }
+      const fallbackCandidates = TERRAIN_TILE_MESHES?.flat?.().filter(Boolean) ?? [];
+      const sources = sourceCandidates.length ? sourceCandidates : fallbackCandidates;
+      const tileSource = sources[(r * 7 + c * 3) % Math.max(1, sources.length)];
+      if (!tileSource) continue;
+
+      const tile = cloneRulesSharedModel(root, tileSource);
+      const tileHeight = level * TERRAIN_HEIGHT_SCALE + 0.04;
+      const sourceGeometryHeight = tileSource.geometry?.parameters?.height ?? tileHeight;
+      const verticalScale = (tileHeight * tileHeight) / Math.max(0.001, sourceGeometryHeight);
+      tile.position.set(
+        (c - (size - 1) / 2) * cell,
+        BOARD_BASE_HEIGHT - 0.04 + tileHeight / 2,
+        (r - (size - 1) / 2) * cell,
+      );
+      tile.scale.set(cell, verticalScale, cell);
+      tile.userData.ruleCell = { r, c, level };
+    }
+  }
+  return { size, cell, levels: originMap };
+}
+
+function addRulesPiece(root, type, x, z, tileTop = 0.14, color = 0xf0d7ad, scale = 1) {
+  // Reuse a real piece already created by the game. No substitute geometry or
+  // duplicate skin materials are generated for the tutorial.
+  const playerNumber = color === 0xf0d7ad ? 1 : 2;
+  const source = PIECE_MESHES?.find(
+    (piece) => piece.userData?.pc?.t === type && piece.userData?.pc?.p === playerNumber,
+  ) || PIECE_MESHES?.find((piece) => piece.userData?.pc?.t === type);
+  if (!source) return null;
+
+  const group = cloneRulesSharedModel(root, source);
+  if (!group) return null;
+  group.visible = true;
+  group.position.set(x, tileTop + 0.02, z);
+  group.scale.setScalar(scale);
+  group.rotation.set(0, group.userData.pc?.p === 2 ? Math.PI : 0, 0);
+  group.userData.anim = false;
+  group.userData.lift = 0;
+  return group;
+}
+
+function addRulesPieceAt(root, board, type, row, col, color, scale = 1) {
+  const level = board.levels[row][col];
+  const point = rulesGridPoint(row, col, board.size, board.cell, level);
+  return addRulesPiece(root, type, point.x, point.z, point.y, color, scale * board.cell / 0.9);
+}
+
+function addRulesMarker(root, x, z, color = 0x70e2a1, scale = 1, y = 0.19) {
+  return addRulesMesh(
+    root,
+    new THREE.CylinderGeometry(0.29 * scale, 0.29 * scale, 0.035, 22),
+    makeRulesMaterial(color, { roughness: 0.28, metalness: 0.1, emissive: color, emissiveIntensity: 0.58, transparent: true, opacity: 0.92 }),
+    x,
+    y,
+    z,
+  );
+}
+
+function addRulesPath(root, points, color = 0x78e6b0, radius = 0.026) {
+  if (!points || points.length < 2) return null;
+  const vectors = points.map((point) => new THREE.Vector3(point.x, point.y + 0.11, point.z));
+  const curve = new THREE.CatmullRomCurve3(vectors);
+  const tube = new THREE.Mesh(
+    new THREE.TubeGeometry(curve, Math.max(10, points.length * 8), radius, 6, false),
+    makeRulesMaterial(color, { roughness: 0.3, metalness: 0.1, emissive: color, emissiveIntensity: 0.48 }),
+  );
+  root.add(tube);
+  const end = vectors[vectors.length - 1];
+  const previous = vectors[vectors.length - 2];
+  const direction = end.clone().sub(previous).normalize();
+  const arrow = new THREE.Mesh(
+    new THREE.ConeGeometry(radius * 3.6, radius * 7, 8),
+    makeRulesMaterial(color, { roughness: 0.3, emissive: color, emissiveIntensity: 0.4 }),
+  );
+  arrow.position.copy(end).addScaledVector(direction, -radius * 2.6);
+  arrow.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), direction);
+  root.add(arrow);
+  return tube;
+}
+
+function makeRulesSceneBase() {
+  const scene = new THREE.Scene();
+  // This temporary environment belongs to the tutorial renderer and is disposed
+  // as soon as the modal closes; it never borrows the live renderer's GPU data.
+  scene.environment = rulesVisualEnvironmentTexture;
+  const camera = new THREE.PerspectiveCamera(39, 1, 0.1, 80);
+  camera.position.set(0, 7.6, 10.4);
+  camera.lookAt(0, 0.32, 0);
+  scene.add(new THREE.HemisphereLight(0xffe9cc, 0x4a2c18, 0.25));
+  const key = new THREE.DirectionalLight(0xffdfb0, 0.85);
+  key.position.set(7, 14, 9);
+  scene.add(key);
+  const rim = new THREE.DirectionalLight(0xffb070, 0.4);
+  rim.position.set(-8, 5, -10);
+  scene.add(rim);
+  const root = new THREE.Group();
+  root.rotation.x = -0.13;
+  root.rotation.y = -0.22;
+  scene.add(root);
+  return { scene, camera, root };
+}
+
+function buildRulesSetupVisual(root) {
+  const heightAt = (r, c) => {
+    const mirroredR = Math.min(r, 9 - r);
+    const distance = Math.hypot(mirroredR - 2.2, c - 4.5);
+    return distance < 1.25 ? 3 : distance < 2.05 ? 2 : distance < 2.9 ? 1 : 0;
+  };
+  const board = addRulesBoard(root, 10, { heightAt });
+  const types = ["s", "v", "e", "e", "v", "s"];
+  const light = 0xf0d7ad;
+  const dark = 0x607e9d;
+  types.forEach((type, i) => {
+    addRulesPieceAt(root, board, type, 9, i + 2, light, 0.94);
+    addRulesPieceAt(root, board, type, 0, i + 2, dark, 0.94);
+  });
+  const cell = board.cell;
+  const x = 0;
+  addRulesPath(root, [
+    { x, y: rulesTileHeight(board.levels[8][4]), z: (8 - 4.5) * cell },
+    { x, y: rulesTileHeight(board.levels[6][4]), z: (6 - 4.5) * cell },
+    { x, y: rulesTileHeight(board.levels[4][4]), z: (4 - 4.5) * cell },
+  ], 0x8ae9ac, 0.018);
+}
+
+function buildRulesPiecesVisual(root) {
+  addRulesGround(root);
+  const positions = [-2.0, 0, 2.0];
+  const pieces = ["e", "v", "s"];
+  pieces.forEach((type, index) => {
+    addRulesPiece(root, type, positions[index], 0, 0.02, 0xf0d7ad, 1.16);
+  });
+}
+
+function buildRulesMovementVisual(root) {
+  const heightAt = (r, c) => {
+    if (r < 1 || r > 3) return 0;
+    if (c === 2) return 2;
+    if (c === 3 || c === 4) return 2;
+    return 0;
+  };
+  const board = addRulesBoard(root, 5, { heightAt, cell: 0.94 });
+  const routeCells = [[2, 0], [2, 1], [2, 2], [2, 3]];
+  const points = routeCells.map(([r, c]) => {
+    const p = rulesGridPoint(r, c, board.size, board.cell, board.levels[r][c]);
+    addRulesMarker(root, p.x, p.z, c === 3 ? 0x72efb1 : 0xe2c178, 0.82, p.y + 0.02);
+    return p;
+  });
+  addRulesPieceAt(root, board, "e", 2, 0, 0xf0d7ad, 1.12);
+  addRulesPath(root, points, 0xe9c56e, 0.035);
+}
+
+function buildRulesExplorerVisual(root) {
+  const board = addRulesBoard(root, 5, { cell: 0.92 });
+  addRulesPieceAt(root, board, "e", 2, 2, 0xf0d7ad, 1.18);
+  const center = rulesGridPoint(2, 2, board.size, board.cell, 0);
+  const diagonal = rulesGridPoint(1, 3, board.size, board.cell, 0);
+  const leapGood = rulesGridPoint(2, 4, board.size, board.cell, 0);
+  const leapStart = rulesGridPoint(0, 2, board.size, board.cell, 0);
+  const blocked = rulesGridPoint(1, 2, board.size, board.cell, 0);
+  addRulesMarker(root, diagonal.x, diagonal.z, 0xf0d16d, 0.82, diagonal.y + 0.02);
+  addRulesMarker(root, leapGood.x, leapGood.z, 0x6edcf0, 0.82, leapGood.y + 0.02);
+  addRulesMarker(root, leapStart.x, leapStart.z, 0xf06f66, 0.82, leapStart.y + 0.02);
+  addRulesPath(root, [center, diagonal], 0xf0d16d, 0.032);
+  addRulesPath(root, [center, leapGood], 0x6edcf0, 0.032);
+  addRulesPieceAt(root, board, "v", 1, 2, 0x607e9d, 0.96);
+  addRulesPath(root, [center, blocked, leapStart], 0xf06f66, 0.022);
+  const x = addRulesMesh(root, new THREE.BoxGeometry(0.34, 0.05, 0.05), makeRulesMaterial(0xff766e, { emissive: 0xff5f57, emissiveIntensity: 0.8 }), blocked.x, blocked.y + 0.7, blocked.z);
+  x.rotation.y = Math.PI / 4;
+  const x2 = x.clone();
+  x2.geometry = new THREE.BoxGeometry(0.34, 0.05, 0.05);
+  x2.material = makeRulesMaterial(0xff766e, { emissive: 0xff5f57, emissiveIntensity: 0.8 });
+  x2.rotation.y = -Math.PI / 4;
+  x2.position.copy(x.position);
+  root.add(x2);
+}
+
+function buildRulesCombatVisual(root) {
+  const heightAt = (r, c) => r === 2 && c === 1 ? 2 : 0;
+  const board = addRulesBoard(root, 5, { heightAt, cell: 0.94 });
+  const attacker = rulesGridPoint(2, 1, board.size, board.cell, board.levels[2][1]);
+  const target = rulesGridPoint(2, 2, board.size, board.cell, board.levels[2][2]);
+  const ally = rulesGridPoint(1, 2, board.size, board.cell, board.levels[1][2]);
+  const defender = rulesGridPoint(3, 2, board.size, board.cell, board.levels[3][2]);
+  addRulesPieceAt(root, board, "s", 2, 1, 0xf0d7ad, 1.1);
+  addRulesPieceAt(root, board, "s", 2, 2, 0x607e9d, 1.1);
+  addRulesPieceAt(root, board, "e", 1, 2, 0xf0d7ad, 0.9);
+  addRulesPieceAt(root, board, "e", 3, 2, 0x607e9d, 0.9);
+  addRulesPath(root, [attacker, target], 0xffc873, 0.045);
+  addRulesPath(root, [ally, target], 0x71e4a4, 0.02);
+  addRulesPath(root, [defender, target], 0x7cb2e7, 0.02);
+  addRulesMarker(root, target.x, target.z, 0xff8c74, 0.92, target.y + 0.02);
+}
+
+function buildRulesExitVisual(root) {
+  const board = addRulesBoard(root, 5, { cell: 0.92 });
+  for (let c = 0; c < board.size; c++) {
+    const top = rulesGridPoint(0, c, board.size, board.cell, 0);
+    addRulesMarker(root, top.x, top.z, 0x6be6a1, 0.72, top.y + 0.015);
+  }
+  const origin = rulesGridPoint(1, 2, board.size, board.cell, 0);
+  const edge = rulesGridPoint(0, 2, board.size, board.cell, 0);
+  addRulesPieceAt(root, board, "v", 1, 2, 0xf0d7ad, 1.1);
+  addRulesPath(root, [origin, edge, { x: edge.x, y: edge.y + 0.2, z: edge.z - 0.9 }], 0x77ebb0, 0.038);
+  for (let i = 0; i < 2; i++) {
+    addRulesMesh(
+      root,
+      new THREE.TorusGeometry(0.13 + i * 0.08, 0.018, 5, 28),
+      makeRulesMaterial(0xf0c77f, { emissive: 0xe6b564, emissiveIntensity: 0.6, metalness: 0.5 }),
+      edge.x + 0.34,
+      0.44 + i * 0.2,
+      edge.z - 0.53,
+    ).rotation.x = Math.PI / 2;
+  }
+}
+
+function buildRulesVictoryVisual(root) {
+  const board = addRulesBoard(root, 6, { cell: 0.82 });
+  for (let c = 0; c < board.size; c++) {
+    const p = rulesGridPoint(0, c, board.size, board.cell, 0);
+    addRulesMarker(root, p.x, p.z, 0x6be6a1, 0.72, p.y + 0.015);
+  }
+  const edge = rulesGridPoint(0, 2, board.size, board.cell, 0);
+  addRulesPiece(root, "s", edge.x, edge.z - 0.8, edge.y, 0xf0d7ad, 1.08);
+  addRulesMesh(
+    root,
+    new THREE.TorusGeometry(0.47, 0.025, 7, 42),
+    makeRulesMaterial(0xf2c96e, { emissive: 0xeec16a, emissiveIntensity: 0.8, metalness: 0.35 }),
+    edge.x,
+    0.9,
+    edge.z - 0.8,
+  ).rotation.x = Math.PI / 2;
+  addRulesPieceAt(root, board, "v", 3, 3, 0x607e9d, 0.95);
+  addRulesPieceAt(root, board, "e", 4, 4, 0x607e9d, 0.95);
+  addRulesPath(root, [
+    { x: edge.x, y: edge.y, z: edge.z - 0.45 },
+    { x: edge.x, y: edge.y, z: edge.z - 0.75 },
+  ], 0xffd67e, 0.038);
+}
+
+function buildRulesControlsVisual(root) {
+  const board = addRulesBoard(root, 6, { cell: 0.82 });
+  addRulesPieceAt(root, board, "e", 4, 2, 0xf0d7ad, 1.1);
+  const origin = rulesGridPoint(4, 2, board.size, board.cell, 0);
+  const destinations = [[3, 2], [4, 1], [4, 3], [3, 1], [3, 3], [2, 2], [4, 4]];
+  destinations.forEach(([r, c], index) => {
+    const p = rulesGridPoint(r, c, board.size, board.cell, 0);
+    addRulesMarker(root, p.x, p.z, index < 3 ? 0x6ce5a5 : 0xe9c874, 0.77, p.y + 0.02);
+    if (index < 5) addRulesPath(root, [origin, p], index < 3 ? 0x6ce5a5 : 0xe9c874, 0.018);
+  });
+}
+
+function buildRulesVisual(type) {
+  const setup = makeRulesSceneBase();
+  switch (type) {
+    case "setup": buildRulesSetupVisual(setup.root); break;
+    case "pieces": buildRulesPiecesVisual(setup.root); break;
+    case "movement": buildRulesMovementVisual(setup.root); break;
+    case "explorer": buildRulesExplorerVisual(setup.root); break;
+    case "combat": buildRulesCombatVisual(setup.root); break;
+    case "exit": buildRulesExitVisual(setup.root); break;
+    case "victory": buildRulesVictoryVisual(setup.root); break;
+    case "controls": buildRulesControlsVisual(setup.root); break;
+    default: buildRulesSetupVisual(setup.root);
+  }
+  if (type === "setup") {
+    setup.camera.position.set(0, 9.4, 11.9);
+    setup.camera.lookAt(0, 0.45, 0);
+  } else if (type === "pieces") {
+    setup.camera.position.set(0, 3.7, 7.6);
+    setup.camera.lookAt(0, 0.65, 0);
+  } else if (["movement", "explorer", "combat", "exit", "victory", "controls"].includes(type)) {
+    setup.camera.position.set(0, 5.4, 7.4);
+    setup.camera.lookAt(0, 0.35, 0);
+  }
+  return setup;
+}
+
+function resizeRulesVisual() {
+  if (!rulesVisualRenderer || !rulesVisualCamera || !rulesVisualCanvas) return;
+  const holder = rulesVisualCanvas.parentElement;
+  if (!holder) return;
+  const width = Math.max(1, Math.floor(holder.clientWidth));
+  const height = Math.max(1, Math.floor(holder.clientHeight));
+  rulesVisualRenderer.setSize(width, height, false);
+  rulesVisualCamera.aspect = width / height;
+  rulesVisualCamera.updateProjectionMatrix();
+  renderRulesVisualFrameOnce();
+}
+
+function onRulesVisualPointerDown(event) {
+  if (!rulesModalOpen || event.button !== 0) return;
+  rulesVisualDrag = { x: event.clientX, y: event.clientY, pointerId: event.pointerId };
+  try { rulesVisualCanvas.setPointerCapture(event.pointerId); } catch (_) {}
+  rulesVisualCanvas.style.cursor = "grabbing";
+}
+
+function onRulesVisualPointerMove(event) {
+  if (!rulesVisualDrag || !rulesVisualRoot || rulesVisualDrag.pointerId !== event.pointerId) return;
+  const dx = event.clientX - rulesVisualDrag.x;
+  const dy = event.clientY - rulesVisualDrag.y;
+  rulesVisualDrag.x = event.clientX;
+  rulesVisualDrag.y = event.clientY;
+  rulesVisualRoot.rotation.y += dx * 0.009;
+  rulesVisualRoot.rotation.x = Math.max(-0.9, Math.min(0.22, rulesVisualRoot.rotation.x + dy * 0.006));
+  renderRulesVisualFrameOnce();
+  event.preventDefault();
+}
+
+function onRulesVisualPointerUp(event) {
+  if (rulesVisualDrag && rulesVisualDrag.pointerId === event.pointerId) {
+    rulesVisualDrag = null;
+    if (rulesVisualCanvas) rulesVisualCanvas.style.cursor = "grab";
+  }
+}
+
+function renderRulesVisualForCurrentSlide() {
+  if (!rulesModalOpen || document.hidden || !rulesSlides[rulesCurrentIndex]) return;
+  const visualHolder = rulesSlides[rulesCurrentIndex].querySelector(".rules-visual-scene");
+  if (!visualHolder) return;
+  if (!rulesVisualRenderer) {
+    try {
+      rulesVisualCanvas = document.createElement("canvas");
+      rulesVisualCanvas.setAttribute("aria-label", "Scène 3D interactive. Fais glisser pour la tourner.");
+      rulesVisualCanvas.setAttribute("role", "img");
+      rulesVisualRenderer = new THREE.WebGLRenderer({
+        canvas: rulesVisualCanvas,
+        alpha: true,
+        antialias: true,
+        powerPreference: "low-power",
+        preserveDrawingBuffer: false,
+      });
+      // Allocate the tutorial environment only while this modal is open.
+      rulesVisualEnvironmentTexture = createSkinPreviewEnvironment();
+      rulesVisualRenderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.35));
+      rulesVisualRenderer.outputEncoding = THREE.sRGBEncoding;
+      rulesVisualRenderer.setClearColor(0x000000, 0);
+      rulesVisualCanvas.addEventListener("pointerdown", onRulesVisualPointerDown);
+      rulesVisualCanvas.addEventListener("pointermove", onRulesVisualPointerMove);
+      rulesVisualCanvas.addEventListener("pointerup", onRulesVisualPointerUp);
+      rulesVisualCanvas.addEventListener("pointercancel", onRulesVisualPointerUp);
+    } catch (error) {
+      console.warn("The rules 3D visual could not be initialized:", error);
+      destroyRulesVisualRenderer();
+      visualHolder.textContent = "Les visuels 3D nécessitent un navigateur compatible WebGL.";
+      return;
+    }
+  }
+  if (rulesVisualCanvas.parentElement !== visualHolder) visualHolder.appendChild(rulesVisualCanvas);
+  disposeRulesVisualScene();
+  const visualType = visualHolder.dataset.ruleVisual;
+  const built = buildRulesVisual(visualType);
+  rulesVisualScene = built.scene;
+  rulesVisualCamera = built.camera;
+  rulesVisualRoot = built.root;
+  resizeRulesVisual();
+}
+
+function renderRulesVisualFrameOnce() {
+  if (!rulesModalOpen || document.hidden || !rulesVisualRenderer || !rulesVisualScene || !rulesVisualCamera) return;
+  rulesVisualRenderer.render(rulesVisualScene, rulesVisualCamera);
+}
+
+window.OpenRulesModal = function () {
+  if (!rulesModal || rulesModalOpen) return;
+  rulesModalOpen = true;
+  rulesModal.classList.add("active");
+  rulesModal.setAttribute("aria-hidden", "false");
+  const startupCheckbox = getElement("rules-skip-startup");
+  if (startupCheckbox) startupCheckbox.checked = readRulesSkipPreference();
+  updateRulesNavigation();
+  window.setTimeout(() => {
+    if (!rulesModalOpen) return;
+    rulesTrack.scrollLeft = rulesCurrentIndex * rulesTrack.clientWidth;
+    updateRulesNavigation();
+    renderRulesVisualForCurrentSlide();
+    getElement("close-rules-modal-button")?.focus({ preventScroll: true });
+  }, 50);
+};
+
+window.CloseRulesModal = function () {
+  if (!rulesModal || !rulesModalOpen) return;
+  rulesModalOpen = false;
+  rulesModal.classList.remove("active");
+  rulesModal.setAttribute("aria-hidden", "true");
+  if (rulesScrollTimer) clearTimeout(rulesScrollTimer);
+  rulesScrollTimer = 0;
+  destroyRulesVisualRenderer();
+  getElement("rules-modal-button")?.focus({ preventScroll: true });
+};
+
+getElement("close-rules-modal-button")?.addEventListener("click", window.CloseRulesModal);
+getElement("rules-prev-button")?.addEventListener("click", () => goToRulesSlide(rulesCurrentIndex - 1));
+getElement("rules-next-button")?.addEventListener("click", () => goToRulesSlide(rulesCurrentIndex + 1));
+getElement("rules-skip-startup")?.addEventListener("change", (event) => writeRulesSkipPreference(event.currentTarget.checked));
+rulesTrack?.addEventListener("scroll", () => {
+  scheduleRulesVisualRefresh(130);
+}, { passive: true });
+rulesTrack?.addEventListener("wheel", (event) => {
+  const copy = event.target.closest?.(".rules-copy");
+  if (copy && window.matchMedia("(min-width: 761px)").matches) return;
+  if (Math.abs(event.deltaY) > Math.abs(event.deltaX)) {
+    event.preventDefault();
+    rulesTrack.scrollLeft += event.deltaY;
+  }
+}, { passive: false });
+rulesModal?.addEventListener("click", (event) => {
+  if (event.target === rulesModal) window.CloseRulesModal();
+});
+document.addEventListener("keydown", (event) => {
+  if (!rulesModalOpen) return;
+  if (event.key === "Escape") {
+    window.CloseRulesModal();
+    return;
+  }
+  if (event.key === "ArrowRight") {
+    event.preventDefault();
+    goToRulesSlide(rulesCurrentIndex + 1);
+    return;
+  }
+  if (event.key === "ArrowLeft") {
+    event.preventDefault();
+    goToRulesSlide(rulesCurrentIndex - 1);
+    return;
+  }
+  if (event.key !== "Tab") return;
+  const focusable = [...rulesModal.querySelectorAll("#close-rules-modal-button, #rules-skip-startup, #rules-prev-button, #rules-next-button")];
+  if (!focusable.length) return;
+  const first = focusable[0];
+  const last = focusable[focusable.length - 1];
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault();
+    last.focus();
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault();
+    first.focus();
+  }
+});
+document.addEventListener("visibilitychange", () => {
+  // Nothing runs in the background. Only repaint if the open modal becomes visible again.
+  if (rulesModalOpen && !document.hidden) resizeRulesVisual();
+});
+window.addEventListener("resize", resizeRulesVisual, { passive: true });
+
+
 resizeRenderer();
 initializeGame();
+if (!readRulesSkipPreference()) window.setTimeout(() => window.OpenRulesModal(), 300);

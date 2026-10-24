@@ -20,6 +20,11 @@
     <div id="piece-info"></div>
   </div>
   <div id="game-toolbar">
+    <button id="rules-modal-button" aria-label="Ouvrir les règles du jeu" title="Règles du jeu" onclick="OpenRulesModal()">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" aria-hidden="true">
+        <path d="M32 176C32 134.5 63.6 100.4 104 96.4L104 96L384 96C437 96 480 139 480 192L480 368L304 368C264.2 368 232 400.2 232 440L232 500C232 524.3 212.3 544 188 544C163.7 544 144 524.3 144 500L144 272L80 272C53.5 272 32 250.5 32 224L32 176zM268.8 544C275.9 530.9 280 515.9 280 500L280 440C280 426.7 290.7 416 304 416L552 416C565.3 416 576 426.7 576 440L576 464C576 508.2 540.2 544 496 544L268.8 544zM112 144C94.3 144 80 158.3 80 176L80 224L144 224L144 176C144 158.3 129.7 144 112 144z"/>
+      </svg>
+    </button>
     <button id="skin-modal-button" aria-label="Open skin modal" onclick="OpenSkinModal()">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
         <path
@@ -53,6 +58,159 @@
       </div>
     </div>
   </div>
+
+  <!-- Interactive rules tutorial: every 3D example uses its own isolated scene. -->
+  <div id="rules-modal" class="modal-overlay rules-overlay" aria-hidden="true">
+    <section class="rules-container" lang="fr" role="dialog" aria-modal="true" aria-labelledby="rules-modal-title">
+      <header class="rules-header">
+        <div class="rules-heading-copy">
+          <div class="rules-kicker">ON APPREND À JOUER</div>
+          <h2 id="rules-modal-title">On découvre Traversal ?</h2>
+          <p>On avance étape par étape. Tu peux tourner chaque exemple 3D pour mieux comprendre.</p>
+        </div>
+        <button id="close-rules-modal-button" class="rules-close-button" aria-label="Fermer le tutoriel">&times;</button>
+      </header>
+
+      <div class="rules-progress-row">
+        <span id="rules-step-count">01 / 08</span>
+        <div class="rules-progress-track" role="progressbar" aria-label="Progression du tutoriel" aria-valuemin="1" aria-valuemax="8" aria-valuenow="1">
+          <span id="rules-progress-fill"></span>
+        </div>
+        <span class="rules-progress-caption">LE GUIDE</span>
+      </div>
+
+      <div id="rules-track" class="rules-track" tabindex="0" aria-label="Étapes du tutoriel. Utilise les flèches ou la molette pour naviguer.">
+        <article class="rules-slide" data-slide="0">
+          <div class="rules-copy">
+            <div class="rules-section-label">01 · LE BUT</div>
+            <h3>Le but : atteindre l’autre bord</h3>
+            <p>Tu joues sur un plateau de <strong>10 × 10 cases</strong>. Certaines cases sont plus hautes que d’autres : le relief compte vraiment dans Traversal.</p>
+            <p>Chaque camp commence avec <strong>six pièces</strong>. Elles partent de deux bords opposés et doivent rejoindre le bord adverse. En solo, tu joues les pièces claires contre le bot ; à deux, chacun contrôle un camp.</p>
+            <div class="rules-tip"><strong>Pour commencer :</strong> regarde d’abord les déplacements. Une bonne route peut te faire gagner des points et éviter un combat risqué.</div>
+          </div>
+          <div class="rules-visual-panel"><div class="rules-visual-scene" data-rule-visual="setup"></div><div class="rules-visual-caption">Plateau 10 × 10 · deux camps · six pièces chacun</div><div class="rules-drag-hint">Clique et fais glisser pour tourner</div></div>
+        </article>
+
+        <article class="rules-slide" data-slide="1">
+          <div class="rules-copy">
+            <div class="rules-section-label">02 · TES PIÈCES</div>
+            <h3>Trois pièces, trois façons de jouer</h3>
+            <p>Le chiffre « déplacement » indique ton budget pour un trajet normal. La « force » sert aux combats et détermine les points gagnés quand la pièce sort.</p>
+            <div class="rules-stat-list">
+              <div><span class="rules-stat-dot explorer-dot"></span><span><strong>Explorer</strong><small>Déplacement 5 · Force 1</small><small>Il va loin et possède deux déplacements spéciaux.</small></span></div>
+              <div><span class="rules-stat-dot vanguard-dot"></span><span><strong>Vanguard</strong><small>Déplacement 4 · Force 2</small><small>Il reçoit +1 en attaque quand le trajet de l’attaque coûte exactement 4 points.</small></span></div>
+              <div><span class="rules-stat-dot sentinel-dot"></span><span><strong>Sentinel</strong><small>Déplacement 3 · Force 3</small><small>Il est le plus fort. Si c’est la première pièce à sortir, la partie est gagnée.</small></span></div>
+            </div>
+            <div class="rules-tip"><strong>Le compromis à retenir :</strong> plus une pièce est forte, moins elle va loin pendant un déplacement normal.</div>
+          </div>
+          <div class="rules-visual-panel"><div class="rules-visual-scene" data-rule-visual="pieces"></div><div class="rules-visual-caption">Explorer · Vanguard · Sentinel</div><div class="rules-drag-hint">Tourne les pièces pour les regarder</div></div>
+        </article>
+
+        <article class="rules-slide" data-slide="2">
+          <div class="rules-copy">
+            <div class="rules-section-label">03 · SE DÉPLACER</div>
+            <h3>Le relief change le coût</h3>
+            <p>Un déplacement normal se fait de case voisine en case voisine, <strong>horizontalement ou verticalement</strong>. Tu peux enchaîner plusieurs étapes tant que tu as assez de points.</p>
+            <p>Sur une hauteur identique, une étape coûte <strong>1 point</strong>. Avec un niveau d’écart, elle coûte <strong>2 points</strong> ; avec deux niveaux d’écart, <strong>3 points</strong>. On additionne le coût de chaque étape.</p>
+            <p>Une pièce bloque le passage : tu ne peux pas traverser une case occupée pendant un trajet normal. Une pièce ennemie peut être attaquée si le jeu indique cette case comme destination possible.</p>
+            <div class="rules-tip"><strong>Petit exemple :</strong> si tu montes de deux niveaux d’un coup, tu dépenses 3 points pour cette seule étape.</div>
+          </div>
+          <div class="rules-visual-panel"><div class="rules-visual-scene" data-rule-visual="movement"></div><div class="rules-visual-caption">Les marches et les pentes peuvent consommer plus de déplacement</div><div class="rules-drag-hint">Tourne la scène pour comparer les hauteurs</div></div>
+        </article>
+
+        <article class="rules-slide" data-slide="3">
+          <div class="rules-copy">
+            <div class="rules-section-label">04 · LE CAS DE L’EXPLORER</div>
+            <h3>Il a deux raccourcis</h3>
+            <p>L’Explorer peut faire un déplacement spécial d’<strong>une case en diagonale</strong>. Il peut aussi bondir de <strong>deux cases tout droit</strong>, à l’horizontale ou à la verticale.</p>
+            <p>Pour le bond, la case entre le départ et l’arrivée doit être <strong>vide</strong>. Si une pièce s’y trouve, le bond est bloqué. Ces déplacements spéciaux ne suivent pas le calcul habituel du coût lié au relief.</p>
+            <div class="rules-tip"><strong>Attention :</strong> l’Explorer est rapide, mais sa force vaut seulement 1. Évite de l’envoyer seul contre une pièce plus puissante.</div>
+          </div>
+          <div class="rules-visual-panel"><div class="rules-visual-scene" data-rule-visual="explorer"></div><div class="rules-visual-caption">Jaune : diagonale · Cyan : bond valide · Rouge : bond bloqué</div><div class="rules-drag-hint">Clique et fais glisser pour tourner</div></div>
+        </article>
+
+        <article class="rules-slide" data-slide="4">
+          <div class="rules-copy">
+            <div class="rules-section-label">05 · LES COMBATS</div>
+            <h3>Avant d’attaquer, regarde autour</h3>
+            <p>Quand une case ennemie est proposée comme destination, le jeu compare l’attaque et la défense. Le relief et les pièces voisines peuvent faire toute la différence.</p>
+            <ul class="rules-bullet-list">
+              <li>Si l’attaquant est plus haut que sa cible, il gagne <strong>+1</strong> ; s’il est plus bas, il perd <strong>−1</strong>.</li>
+              <li>Chaque allié placé juste à côté de la cible ajoute sa <strong>force</strong> à l’attaque.</li>
+              <li>Chaque défenseur allié placé juste à côté de la cible ajoute <strong>+1</strong> à la défense.</li>
+              <li>Le Vanguard gagne encore <strong>+1 en attaque</strong> si le coût total du trajet d’attaque vaut exactement 4.</li>
+            </ul>
+            <p>Si l’attaque atteint ou dépasse la défense, elle réussit et la pièce visée est retirée du plateau.</p>
+            <div class="rules-tip"><strong>Exemple :</strong> un Sentinel (3) en hauteur (+1), aidé par un Explorer allié ( +1), attaque à 5. Si le défenseur totalise 4, il est battu.</div>
+          </div>
+          <div class="rules-visual-panel"><div class="rules-visual-scene" data-rule-visual="combat"></div><div class="rules-visual-caption">Le terrain et les soutiens autour de la cible changent le résultat</div><div class="rules-drag-hint">Tourne la scène pour voir les positions</div></div>
+        </article>
+
+        <article class="rules-slide" data-slide="5">
+          <div class="rules-copy">
+            <div class="rules-section-label">06 · SORTIR ET MARQUER</div>
+            <h3>La force de la pièce devient des points</h3>
+            <p>Le but est de faire sortir tes pièces par le bord opposé. Quand une pièce sort, elle quitte la partie et son camp marque un nombre de points égal à sa force.</p>
+            <div class="rules-score-grid">
+              <div><strong>Explorer</strong><b>+1</b><small>1 point</small></div>
+              <div><strong>Vanguard</strong><b>+2</b><small>2 points</small></div>
+              <div><strong>Sentinel</strong><b>+3</b><small>3 points</small></div>
+            </div>
+            <p>Une pièce sortie ne peut plus bouger ni combattre. Mais attention : sortir avec un Sentinel peut faire gagner immédiatement, selon le moment où il quitte le plateau.</p>
+            <div class="rules-tip"><strong>À toi de choisir :</strong> un Explorer marque moins de points, mais il est plus rapide. Un Sentinel est précieux et plus difficile à faire sortir.</div>
+          </div>
+          <div class="rules-visual-panel"><div class="rules-visual-scene" data-rule-visual="exit"></div><div class="rules-visual-caption">Une pièce qui passe le bord est retirée et son score est ajouté</div><div class="rules-drag-hint">Tourne la scène pour voir la sortie</div></div>
+        </article>
+
+        <article class="rules-slide" data-slide="6">
+          <div class="rules-copy">
+            <div class="rules-section-label">07 · FIN DE PARTIE</div>
+            <h3>Comment savoir qui a gagné ?</h3>
+            <p>La partie s’arrête dès qu’une des situations suivantes se produit :</p>
+            <ol class="rules-bullet-list rules-numbered-list">
+              <li><strong>Le premier à sortir est un Sentinel :</strong> son camp gagne immédiatement.</li>
+              <li><strong>Deux pièces sont sorties au total :</strong> le camp qui a le plus de points gagne. Si les scores sont égaux, c’est un match nul.</li>
+              <li><strong>Un camp n’a plus aucune pièce sur le plateau :</strong> chaque camp ajoute la force de sa pièce restante la plus forte à son score, puis les scores sont comparés.</li>
+              <li><strong>La partie atteint 200 coups :</strong> les scores sont comparés. En cas d’égalité, le jeu regarde l’avancée des pièces vers la sortie, puis leur force.</li>
+            </ol>
+            <div class="rules-tip"><strong>Le détail important :</strong> la victoire instantanée du Sentinel ne marche que s’il est vraiment la toute première pièce à sortir.</div>
+          </div>
+          <div class="rules-visual-panel"><div class="rules-visual-scene" data-rule-visual="victory"></div><div class="rules-visual-caption">Sentinel premier à sortir : victoire immédiate</div><div class="rules-drag-hint">Clique et fais glisser pour tourner</div></div>
+        </article>
+
+        <article class="rules-slide" data-slide="7">
+          <div class="rules-copy">
+            <div class="rules-section-label">08 · À TON TOUR</div>
+            <h3>Comment jouer, concrètement</h3>
+            <ol class="rules-bullet-list rules-numbered-list">
+              <li><strong>Clique sur une de tes pièces.</strong> Les destinations possibles s’affichent.</li>
+              <li><strong>Clique sur une destination en surbrillance.</strong> Le déplacement, le combat ou la sortie se fait tout de suite.</li>
+              <li><strong>Observe la hauteur et les pièces voisines.</strong> Un trajet plus coûteux peut être utile, mais vérifie toujours le résultat d’un combat.</li>
+              <li><strong>Tourne la caméra</strong> en faisant glisser la souris ou ton doigt sur le plateau.</li>
+            </ol>
+            <p>Si tu n’as aucun coup légal, le jeu passe ton tour automatiquement.</p>
+            <p>Le bouton avec les joueurs permet de passer du bot au mode deux joueurs. Le bouton de nouveau plateau génère une nouvelle carte avec un relief différent.</p>
+            <div class="rules-tip"><strong>Conseil pour ta première partie :</strong> essaie de déplacer un Explorer, regarde le coût affiché par les cases, puis avance progressivement tes autres pièces.</div>
+          </div>
+          <div class="rules-visual-panel"><div class="rules-visual-scene" data-rule-visual="controls"></div><div class="rules-visual-caption">Sélectionne une pièce, puis une destination surlignée</div><div class="rules-drag-hint">Clique et fais glisser pour tourner</div></div>
+        </article>
+      </div>
+
+      <footer class="rules-footer">
+        <label class="rules-startup-option"><input id="rules-skip-startup" type="checkbox" /> <span>Ne plus afficher au démarrage</span></label>
+        <div class="rules-navigation">
+          <button id="rules-prev-button" type="button" aria-label="Étape précédente">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18 9 12l6-6"/></svg>
+          </button>
+          <span id="rules-navigation-count">1 / 8</span>
+          <button id="rules-next-button" type="button" aria-label="Étape suivante">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </footer>
+    </section>
+  </div>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script type="module" src="script.js"></script>
 </body>
