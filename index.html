@@ -1,13 +1,14 @@
-<!doctype html>
+<!DOCTYPE html>
+
 <html lang="en">
 
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta content="width=device-width, initial-scale=1, viewport-fit=cover" name="viewport" />
   <link href="https://db.onlinewebfonts.com/c/4436831bf55ad5a226304062ef652cb9?family=Angel+wish" rel="stylesheet" />
   <link href="https://fonts.googleapis.com/css2?family=Texturina" rel="stylesheet" />
-  <link rel="icon" href="assets/icon.png" type="image/png" />
-  <link rel="stylesheet" href="style.css" />
+  <link href="assets/icon.png" rel="icon" type="image/png" />
+  <link href="style.css" rel="stylesheet" />
   <title>Traversal</title>
 </head>
 
@@ -20,199 +21,283 @@
     <div id="piece-info"></div>
   </div>
   <div id="game-toolbar">
-    <button id="rules-modal-button" aria-label="Ouvrir les règles du jeu" title="Règles du jeu" onclick="OpenRulesModal()">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640" aria-hidden="true">
-        <path d="M32 176C32 134.5 63.6 100.4 104 96.4L104 96L384 96C437 96 480 139 480 192L480 368L304 368C264.2 368 232 400.2 232 440L232 500C232 524.3 212.3 544 188 544C163.7 544 144 524.3 144 500L144 272L80 272C53.5 272 32 250.5 32 224L32 176zM268.8 544C275.9 530.9 280 515.9 280 500L280 440C280 426.7 290.7 416 304 416L552 416C565.3 416 576 426.7 576 440L576 464C576 508.2 540.2 544 496 544L268.8 544zM112 144C94.3 144 80 158.3 80 176L80 224L144 224L144 176C144 158.3 129.7 144 112 144z"/>
+    <button aria-label="Open game rules" id="rules-modal-button" onclick="OpenRulesModal()" title="Open game rules">
+      <svg aria-hidden="true" viewbox="0 0 640 640" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M32 176C32 134.5 63.6 100.4 104 96.4L104 96L384 96C437 96 480 139 480 192L480 368L304 368C264.2 368 232 400.2 232 440L232 500C232 524.3 212.3 544 188 544C163.7 544 144 524.3 144 500L144 272L80 272C53.5 272 32 250.5 32 224L32 176zM268.8 544C275.9 530.9 280 515.9 280 500L280 440C280 426.7 290.7 416 304 416L552 416C565.3 416 576 426.7 576 440L576 464C576 508.2 540.2 544 496 544L268.8 544zM112 144C94.3 144 80 158.3 80 176L80 224L144 224L144 176C144 158.3 129.7 144 112 144z">
+        </path>
       </svg>
     </button>
-    <button id="skin-modal-button" aria-label="Open skin modal" onclick="OpenSkinModal()">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
+    <button aria-label="Open skins" id="skin-modal-button" onclick="OpenSkinModal()" title="Open skins">
+      <svg viewbox="0 0 640 640" xmlns="http://www.w3.org/2000/svg">
         <path
-          d="M64 128C64 92.7 92.7 64 128 64L416 64C451.3 64 480 92.7 480 128L496 128C540.2 128 576 163.8 576 208L576 304C576 348.2 540.2 384 496 384L336 384C327.2 384 320 391.2 320 400L320 418.7C338.6 425.3 352 443.1 352 464L352 560C352 586.5 330.5 608 304 608L272 608C245.5 608 224 586.5 224 560L224 464C224 443.1 237.4 425.3 256 418.7L256 400C256 355.8 291.8 320 336 320L496 320C504.8 320 512 312.8 512 304L512 208C512 199.2 504.8 192 496 192L480 192C480 227.3 451.3 256 416 256L128 256C92.7 256 64 227.3 64 192L64 128z" />
+          d="M64 128C64 92.7 92.7 64 128 64L416 64C451.3 64 480 92.7 480 128L496 128C540.2 128 576 163.8 576 208L576 304C576 348.2 540.2 384 496 384L336 384C327.2 384 320 391.2 320 400L320 418.7C338.6 425.3 352 443.1 352 464L352 560C352 586.5 330.5 608 304 608L272 608C245.5 608 224 586.5 224 560L224 464C224 443.1 237.4 425.3 256 418.7L256 400C256 355.8 291.8 320 336 320L496 320C504.8 320 512 312.8 512 304L512 208C512 199.2 504.8 192 496 192L480 192C480 227.3 451.3 256 416 256L128 256C92.7 256 64 227.3 64 192L64 128z">
+        </path>
       </svg>
     </button>
-    <button id="new-board-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
+    <button aria-label="Create a new board" id="new-board-button" title="Create a new board"><svg viewbox="0 0 640 640"
+        xmlns="http://www.w3.org/2000/svg">
         <path
-          d="M552 256L408 256C398.3 256 389.5 250.2 385.8 241.2C382.1 232.2 384.1 221.9 391 215L437.7 168.3C362.4 109.7 253.4 115 184.2 184.2C109.2 259.2 109.2 380.7 184.2 455.7C259.2 530.7 380.7 530.7 455.7 455.7C463.9 447.5 471.2 438.8 477.6 429.6C487.7 415.1 507.7 411.6 522.2 421.7C536.7 431.8 540.2 451.8 530.1 466.3C521.6 478.5 511.9 490.1 501 501C401 601 238.9 601 139 501C39.1 401 39 239 139 139C233.3 44.7 382.7 39.4 483.3 122.8L535 71C541.9 64.1 552.2 62.1 561.2 65.8C570.2 69.5 576 78.3 576 88L576 232C576 245.3 565.3 256 552 256z" />
+          d="M552 256L408 256C398.3 256 389.5 250.2 385.8 241.2C382.1 232.2 384.1 221.9 391 215L437.7 168.3C362.4 109.7 253.4 115 184.2 184.2C109.2 259.2 109.2 380.7 184.2 455.7C259.2 530.7 380.7 530.7 455.7 455.7C463.9 447.5 471.2 438.8 477.6 429.6C487.7 415.1 507.7 411.6 522.2 421.7C536.7 431.8 540.2 451.8 530.1 466.3C521.6 478.5 511.9 490.1 501 501C401 601 238.9 601 139 501C39.1 401 39 239 139 139C233.3 44.7 382.7 39.4 483.3 122.8L535 71C541.9 64.1 552.2 62.1 561.2 65.8C570.2 69.5 576 78.3 576 88L576 232C576 245.3 565.3 256 552 256z">
+        </path>
       </svg></button>
-    <button id="game-mode-button" aria-label="Toggle game mode">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
-        <path fill="currentColor"
-          d="M352 64C352 46.3 337.7 32 320 32C302.3 32 288 46.3 288 64L288 128L192 128C139 128 96 171 96 224L96 448C96 501 139 544 192 544L448 544C501 544 544 501 544 448L544 224C544 171 501 128 448 128L352 128L352 64zM160 432C160 418.7 170.7 408 184 408L216 408C229.3 408 240 418.7 240 432C240 445.3 229.3 456 216 456L184 456C170.7 456 160 445.3 160 432zM280 432C280 418.7 290.7 408 304 408L336 408C349.3 408 360 418.7 360 432C360 445.3 349.3 456 336 456L304 456C290.7 456 280 445.3 280 432zM400 432C400 418.7 410.7 408 424 408L456 408C469.3 408 480 418.7 480 432C480 445.3 469.3 456 456 456L424 456C410.7 456 400 445.3 400 432zM224 240C250.5 240 272 261.5 272 288C272 314.5 250.5 336 224 336C197.5 336 176 314.5 176 288C176 261.5 197.5 240 224 240zM368 288C368 261.5 389.5 240 416 240C442.5 240 464 261.5 464 288C464 314.5 442.5 336 416 336C389.5 336 368 314.5 368 288zM64 288C64 270.3 49.7 256 32 256C14.3 256 0 270.3 0 288L0 384C0 401.7 14.3 416 32 416C49.7 416 64 401.7 64 384L64 288zM608 256C590.3 256 576 270.3 576 288L576 384C576 401.7 590.3 416 608 416C625.7 416 640 401.7 640 384L640 288C640 270.3 625.7 256 608 256z" />
+    <button aria-label="Switch to two-player mode" id="game-mode-button" title="Switch to two-player mode">
+      <svg viewbox="0 0 640 640" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M352 64C352 46.3 337.7 32 320 32C302.3 32 288 46.3 288 64L288 128L192 128C139 128 96 171 96 224L96 448C96 501 139 544 192 544L448 544C501 544 544 501 544 448L544 224C544 171 501 128 448 128L352 128L352 64zM160 432C160 418.7 170.7 408 184 408L216 408C229.3 408 240 418.7 240 432C240 445.3 229.3 456 216 456L184 456C170.7 456 160 445.3 160 432zM280 432C280 418.7 290.7 408 304 408L336 408C349.3 408 360 418.7 360 432C360 445.3 349.3 456 336 456L304 456C290.7 456 280 445.3 280 432zM400 432C400 418.7 410.7 408 424 408L456 408C469.3 408 480 418.7 480 432C480 445.3 469.3 456 456 456L424 456C410.7 456 400 445.3 400 432zM224 240C250.5 240 272 261.5 272 288C272 314.5 250.5 336 224 336C197.5 336 176 314.5 176 288C176 261.5 197.5 240 224 240zM368 288C368 261.5 389.5 240 416 240C442.5 240 464 261.5 464 288C464 314.5 442.5 336 416 336C389.5 336 368 314.5 368 288zM64 288C64 270.3 49.7 256 32 256C14.3 256 0 270.3 0 288L0 384C0 401.7 14.3 416 32 416C49.7 416 64 401.7 64 384L64 288zM608 256C590.3 256 576 270.3 576 288L576 384C576 401.7 590.3 416 608 416C625.7 416 640 401.7 640 384L640 288C640 270.3 625.7 256 608 256z"
+          fill="currentColor"></path>
       </svg>
     </button>
-    <button id="sound-toggle-button"><svg id="sound-toggle-btn" data-state="on" class="sound-toggle-btn"
-        xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 640">
+    <button aria-label="Mute sound" id="sound-toggle-button" title="Mute sound"><svg class="sound-toggle-btn"
+        data-state="on" id="sound-toggle-btn" viewbox="0 0 640 640" xmlns="http://www.w3.org/2000/svg">
         <path
-          d="M112 416L160 416L294.1 535.2C300.5 540.9 308.7 544 317.2 544C336.4 544 352 528.4 352 509.2L352 130.8C352 111.6 336.4 96 317.2 96C308.7 96 300.5 99.1 294.1 104.8L160 224L112 224C85.5 224 64 245.5 64 272L64 368C64 394.5 85.5 416 112 416zM505.1 171C494.8 162.6 479.7 164.2 471.3 174.5C462.9 184.8 464.5 199.9 474.8 208.3C507.3 234.7 528 274.9 528 320C528 365.1 507.3 405.3 474.8 431.8C464.5 440.2 463 455.3 471.3 465.6C479.6 475.9 494.8 477.4 505.1 469.1C548.3 433.9 576 380.2 576 320.1C576 260 548.3 206.3 505.1 171.1zM444.6 245.5C434.3 237.1 419.2 238.7 410.8 249C402.4 259.3 404 274.4 414.3 282.8C425.1 291.6 432 305 432 320C432 335 425.1 348.4 414.3 357.3C404 365.7 402.5 380.8 410.8 391.1C419.1 401.4 434.3 402.9 444.6 394.6C466.1 376.9 480 350.1 480 320C480 289.9 466.1 263.1 444.5 245.5z" />
+          d="M112 416L160 416L294.1 535.2C300.5 540.9 308.7 544 317.2 544C336.4 544 352 528.4 352 509.2L352 130.8C352 111.6 336.4 96 317.2 96C308.7 96 300.5 99.1 294.1 104.8L160 224L112 224C85.5 224 64 245.5 64 272L64 368C64 394.5 85.5 416 112 416zM505.1 171C494.8 162.6 479.7 164.2 471.3 174.5C462.9 184.8 464.5 199.9 474.8 208.3C507.3 234.7 528 274.9 528 320C528 365.1 507.3 405.3 474.8 431.8C464.5 440.2 463 455.3 471.3 465.6C479.6 475.9 494.8 477.4 505.1 469.1C548.3 433.9 576 380.2 576 320.1C576 260 548.3 206.3 505.1 171.1zM444.6 245.5C434.3 237.1 419.2 238.7 410.8 249C402.4 259.3 404 274.4 414.3 282.8C425.1 291.6 432 305 432 320C432 335 425.1 348.4 414.3 357.3C404 365.7 402.5 380.8 410.8 391.1C419.1 401.4 434.3 402.9 444.6 394.6C466.1 376.9 480 350.1 480 320C480 289.9 466.1 263.1 444.5 245.5z">
+        </path>
       </svg></button>
   </div>
   <!-- Skin modal -->
-  <div id="skin-modal" class="modal-overlay" aria-hidden="true">
-    <div class="modal-container" role="dialog" aria-modal="true" aria-labelledby="skin-modal-title">
+  <div aria-hidden="true" class="modal-overlay" id="skin-modal">
+    <div aria-labelledby="skin-modal-title" aria-modal="true" class="modal-container" role="dialog">
       <div class="modal-header">
-        <h2 id="skin-modal-title">Select Piece Skin</h2>
-        <button id="close-skin-modal-button" aria-label="Close skin modal" onclick="CloseSkinModal()">&times;</button>
+        <h2 id="skin-modal-title">Choose a piece skin</h2>
+        <button aria-label="Close skin selection" id="close-skin-modal-button" onclick="CloseSkinModal()">×</button>
       </div>
-      <div id="skin-options-grid" class="skin-grid">
+      <div class="skin-grid" id="skin-options-grid">
       </div>
     </div>
   </div>
-
   <!-- Interactive rules tutorial: every 3D example uses its own isolated scene. -->
-  <div id="rules-modal" class="modal-overlay rules-overlay" aria-hidden="true">
-    <section class="rules-container" lang="fr" role="dialog" aria-modal="true" aria-labelledby="rules-modal-title">
+  <div aria-hidden="true" class="modal-overlay rules-overlay" id="rules-modal">
+    <section aria-labelledby="rules-modal-title" aria-modal="true" class="rules-container" lang="en" role="dialog">
       <header class="rules-header">
         <div class="rules-heading-copy">
-          <div class="rules-kicker">ON APPREND À JOUER</div>
-          <h2 id="rules-modal-title">On découvre Traversal ?</h2>
-          <p>On avance étape par étape. Tu peux tourner chaque exemple 3D pour mieux comprendre.</p>
+          <div class="rules-kicker">LEARN TO PLAY</div>
+          <h2 id="rules-modal-title">Discover Traversal</h2>
+          <p>Learn step by step. Rotate each 3D example to understand the rules more clearly.</p>
         </div>
-        <button id="close-rules-modal-button" class="rules-close-button" aria-label="Fermer le tutoriel">&times;</button>
+        <div class="rules-header-actions">
+          <label class="rules-language-control" for="rules-language-select">
+            <span id="rules-language-label">Language</span>
+            <select aria-label="Language" id="rules-language-select">
+              <option value="fr">Français</option>
+              <option value="en">English</option>
+              <option value="es">Español</option>
+              <option value="de">Deutsch</option>
+              <option value="it">Italiano</option>
+              <option value="pt">Português</option>
+              <option value="ja">日本語</option>
+              <option value="zh">简体中文</option>
+            </select>
+          </label>
+          <button aria-label="Close tutorial" class="rules-close-button" id="close-rules-modal-button">×</button>
+        </div>
       </header>
-
       <div class="rules-progress-row">
         <span id="rules-step-count">01 / 08</span>
-        <div class="rules-progress-track" role="progressbar" aria-label="Progression du tutoriel" aria-valuemin="1" aria-valuemax="8" aria-valuenow="1">
+        <div aria-label="Tutorial progress" aria-valuemax="8" aria-valuemin="1" aria-valuenow="1"
+          class="rules-progress-track" role="progressbar">
           <span id="rules-progress-fill"></span>
         </div>
-        <span class="rules-progress-caption">LE GUIDE</span>
+        <span class="rules-progress-caption">THE GUIDE</span>
       </div>
-
-      <div id="rules-track" class="rules-track" tabindex="0" aria-label="Étapes du tutoriel. Utilise les flèches ou la molette pour naviguer.">
+      <div aria-label="Tutorial steps. Use the arrow keys or mouse wheel to navigate." class="rules-track"
+        id="rules-track" tabindex="0">
         <article class="rules-slide" data-slide="0">
           <div class="rules-copy">
-            <div class="rules-section-label">01 · LE BUT</div>
-            <h3>Le but : atteindre l’autre bord</h3>
-            <p>Tu joues sur un plateau de <strong>10 × 10 cases</strong>. Certaines cases sont plus hautes que d’autres : le relief compte vraiment dans Traversal.</p>
-            <p>Chaque camp commence avec <strong>six pièces</strong>. Elles partent de deux bords opposés et doivent rejoindre le bord adverse. En solo, tu joues les pièces claires contre le bot ; à deux, chacun contrôle un camp.</p>
-            <div class="rules-tip"><strong>Pour commencer :</strong> regarde d’abord les déplacements. Une bonne route peut te faire gagner des points et éviter un combat risqué.</div>
+            <div class="rules-section-label">01 · THE GOAL</div>
+            <h3>Reach the opposite edge</h3>
+            <p>You play on a <strong>10 × 10 board</strong>. Some squares are higher than others, so terrain plays a
+              real role in Traversal.</p>
+            <p>Each side starts with <strong>six pieces</strong>. They begin on opposite edges and must reach the
+              opponent’s edge. In solo mode, you control the light pieces against the bot; in two-player mode, each
+              player controls a side.</p>
+            <div class="rules-tip"><strong>To get started:</strong> learn the movement rules first. A good route can
+              earn points and help you avoid risky fights.</div>
           </div>
-          <div class="rules-visual-panel"><div class="rules-visual-scene" data-rule-visual="setup"></div><div class="rules-visual-caption">Plateau 10 × 10 · deux camps · six pièces chacun</div><div class="rules-drag-hint">Clique et fais glisser pour tourner</div></div>
+          <div class="rules-visual-panel">
+            <div class="rules-visual-scene" data-rule-visual="setup"></div>
+            <div class="rules-visual-caption">10 × 10 board · two sides · six pieces each</div>
+            <div class="rules-drag-hint">Click and drag to rotate</div>
+          </div>
         </article>
-
         <article class="rules-slide" data-slide="1">
           <div class="rules-copy">
-            <div class="rules-section-label">02 · TES PIÈCES</div>
-            <h3>Trois pièces, trois façons de jouer</h3>
-            <p>Le chiffre « déplacement » indique ton budget pour un trajet normal. La « force » sert aux combats et détermine les points gagnés quand la pièce sort.</p>
+            <div class="rules-section-label">02 · YOUR PIECES</div>
+            <h3>Three pieces, three play styles</h3>
+            <p>Movement is the budget for a normal route. Strength is used in combat and determines how many points a
+              piece scores when it exits.</p>
             <div class="rules-stat-list">
-              <div><span class="rules-stat-dot explorer-dot"></span><span><strong>Explorer</strong><small>Déplacement 5 · Force 1</small><small>Il va loin et possède deux déplacements spéciaux.</small></span></div>
-              <div><span class="rules-stat-dot vanguard-dot"></span><span><strong>Vanguard</strong><small>Déplacement 4 · Force 2</small><small>Il reçoit +1 en attaque quand le trajet de l’attaque coûte exactement 4 points.</small></span></div>
-              <div><span class="rules-stat-dot sentinel-dot"></span><span><strong>Sentinel</strong><small>Déplacement 3 · Force 3</small><small>Il est le plus fort. Si c’est la première pièce à sortir, la partie est gagnée.</small></span></div>
+              <div><span class="rules-stat-dot explorer-dot"></span><span><strong>Explorer</strong><small>Movement 5 ·
+                    Strength 1</small><small>Moves far and has two special moves.</small></span></div>
+              <div><span class="rules-stat-dot vanguard-dot"></span><span><strong>Vanguard</strong><small>Movement 4 ·
+                    Strength 2</small><small>Gets +1 attack when the attack route costs exactly 4 points.</small></span>
+              </div>
+              <div><span class="rules-stat-dot sentinel-dot"></span><span><strong>Sentinel</strong><small>Movement 3 ·
+                    Strength 3</small><small>The strongest piece. If it is the first to exit, its side
+                    wins.</small></span></div>
             </div>
-            <div class="rules-tip"><strong>Le compromis à retenir :</strong> plus une pièce est forte, moins elle va loin pendant un déplacement normal.</div>
+            <div class="rules-tip"><strong>The trade-off:</strong> the stronger a piece is, the less distance it can
+              cover in a normal move.</div>
           </div>
-          <div class="rules-visual-panel"><div class="rules-visual-scene" data-rule-visual="pieces"></div><div class="rules-visual-caption">Explorer · Vanguard · Sentinel</div><div class="rules-drag-hint">Tourne les pièces pour les regarder</div></div>
+          <div class="rules-visual-panel">
+            <div class="rules-visual-scene" data-rule-visual="pieces"></div>
+            <div class="rules-visual-caption">Explorer · Vanguard · Sentinel</div>
+            <div class="rules-drag-hint">Rotate the pieces to look around them</div>
+          </div>
         </article>
-
         <article class="rules-slide" data-slide="2">
           <div class="rules-copy">
-            <div class="rules-section-label">03 · SE DÉPLACER</div>
-            <h3>Le relief change le coût</h3>
-            <p>Un déplacement normal se fait de case voisine en case voisine, <strong>horizontalement ou verticalement</strong>. Tu peux enchaîner plusieurs étapes tant que tu as assez de points.</p>
-            <p>Sur une hauteur identique, une étape coûte <strong>1 point</strong>. Avec un niveau d’écart, elle coûte <strong>2 points</strong> ; avec deux niveaux d’écart, <strong>3 points</strong>. On additionne le coût de chaque étape.</p>
-            <p>Une pièce bloque le passage : tu ne peux pas traverser une case occupée pendant un trajet normal. Une pièce ennemie peut être attaquée si le jeu indique cette case comme destination possible.</p>
-            <div class="rules-tip"><strong>Petit exemple :</strong> si tu montes de deux niveaux d’un coup, tu dépenses 3 points pour cette seule étape.</div>
+            <div class="rules-section-label">03 · MOVEMENT</div>
+            <h3>Terrain changes the cost</h3>
+            <p>Normal movement goes from one adjacent square to another, <strong>horizontally or vertically</strong>.
+              You can chain steps while you have enough movement points.</p>
+            <p>A step on the same height costs <strong>1 point</strong>. A one-level difference costs <strong>2
+                points</strong>; a two-level difference costs <strong>3 points</strong>. Add up the cost of every step.
+            </p>
+            <p>A piece blocks the way: you cannot pass through an occupied square during a normal route. An enemy can be
+              attacked if the game shows its square as a possible destination.</p>
+            <div class="rules-tip"><strong>Example:</strong> climbing two height levels in one step costs 3 points for
+              that step alone.</div>
           </div>
-          <div class="rules-visual-panel"><div class="rules-visual-scene" data-rule-visual="movement"></div><div class="rules-visual-caption">Les marches et les pentes peuvent consommer plus de déplacement</div><div class="rules-drag-hint">Tourne la scène pour comparer les hauteurs</div></div>
+          <div class="rules-visual-panel">
+            <div class="rules-visual-scene" data-rule-visual="movement"></div>
+            <div class="rules-visual-caption">Steps and slopes can use more movement points</div>
+            <div class="rules-drag-hint">Rotate the scene to compare heights</div>
+          </div>
         </article>
-
         <article class="rules-slide" data-slide="3">
           <div class="rules-copy">
-            <div class="rules-section-label">04 · LE CAS DE L’EXPLORER</div>
-            <h3>Il a deux raccourcis</h3>
-            <p>L’Explorer peut faire un déplacement spécial d’<strong>une case en diagonale</strong>. Il peut aussi bondir de <strong>deux cases tout droit</strong>, à l’horizontale ou à la verticale.</p>
-            <p>Pour le bond, la case entre le départ et l’arrivée doit être <strong>vide</strong>. Si une pièce s’y trouve, le bond est bloqué. Ces déplacements spéciaux ne suivent pas le calcul habituel du coût lié au relief.</p>
-            <div class="rules-tip"><strong>Attention :</strong> l’Explorer est rapide, mais sa force vaut seulement 1. Évite de l’envoyer seul contre une pièce plus puissante.</div>
+            <div class="rules-section-label">04 · THE EXPLORER</div>
+            <h3>It has two shortcuts</h3>
+            <p>The Explorer can make a special move <strong>one square diagonally</strong>. It can also jump <strong>two
+                squares in a straight line</strong>, horizontally or vertically.</p>
+            <p>For a jump, the square between the start and destination must be <strong>empty</strong>. If a piece
+              occupies it, the jump is blocked. These special moves ignore the usual terrain-based movement cost.</p>
+            <div class="rules-tip"><strong>Watch out:</strong> the Explorer is fast, but has only 1 strength. Avoid
+              sending it alone against a stronger piece.</div>
           </div>
-          <div class="rules-visual-panel"><div class="rules-visual-scene" data-rule-visual="explorer"></div><div class="rules-visual-caption">Jaune : diagonale · Cyan : bond valide · Rouge : bond bloqué</div><div class="rules-drag-hint">Clique et fais glisser pour tourner</div></div>
+          <div class="rules-visual-panel">
+            <div class="rules-visual-scene" data-rule-visual="explorer"></div>
+            <div class="rules-visual-caption">Yellow: diagonal · Cyan: valid jump · Red: blocked jump</div>
+            <div class="rules-drag-hint">Click and drag to rotate</div>
+          </div>
         </article>
-
         <article class="rules-slide" data-slide="4">
           <div class="rules-copy">
-            <div class="rules-section-label">05 · LES COMBATS</div>
-            <h3>Avant d’attaquer, regarde autour</h3>
-            <p>Quand une case ennemie est proposée comme destination, le jeu compare l’attaque et la défense. Le relief et les pièces voisines peuvent faire toute la différence.</p>
+            <div class="rules-section-label">05 · COMBAT</div>
+            <h3>Look around before attacking</h3>
+            <p>When an enemy square is offered as a destination, the game compares attack and defense. Terrain and
+              nearby pieces can make all the difference.</p>
             <ul class="rules-bullet-list">
-              <li>Si l’attaquant est plus haut que sa cible, il gagne <strong>+1</strong> ; s’il est plus bas, il perd <strong>−1</strong>.</li>
-              <li>Chaque allié placé juste à côté de la cible ajoute sa <strong>force</strong> à l’attaque.</li>
-              <li>Chaque défenseur allié placé juste à côté de la cible ajoute <strong>+1</strong> à la défense.</li>
-              <li>Le Vanguard gagne encore <strong>+1 en attaque</strong> si le coût total du trajet d’attaque vaut exactement 4.</li>
+              <li>If the attacker is higher than the target, it gets <strong>+1</strong>; if lower, it gets
+                <strong>−1</strong>.</li>
+              <li>Each allied piece right next to the target adds its <strong>strength</strong> to the attack.</li>
+              <li>Each defending ally right next to the target adds <strong>+1</strong> to defense.</li>
+              <li>The Vanguard gets another <strong>+1 attack</strong> if the full attack route costs exactly 4 points.
+              </li>
             </ul>
-            <p>Si l’attaque atteint ou dépasse la défense, elle réussit et la pièce visée est retirée du plateau.</p>
-            <div class="rules-tip"><strong>Exemple :</strong> un Sentinel (3) en hauteur (+1), aidé par un Explorer allié ( +1), attaque à 5. Si le défenseur totalise 4, il est battu.</div>
+            <p>If attack equals or exceeds defense, the attack succeeds and the target is removed from the board.</p>
+            <div class="rules-tip"><strong>Example:</strong> an elevated Sentinel (3, +1), supported by an allied
+              Explorer (+1), attacks with 5. A defender with 4 is defeated.</div>
           </div>
-          <div class="rules-visual-panel"><div class="rules-visual-scene" data-rule-visual="combat"></div><div class="rules-visual-caption">Le terrain et les soutiens autour de la cible changent le résultat</div><div class="rules-drag-hint">Tourne la scène pour voir les positions</div></div>
+          <div class="rules-visual-panel">
+            <div class="rules-visual-scene" data-rule-visual="combat"></div>
+            <div class="rules-visual-caption">Terrain and nearby support change the result</div>
+            <div class="rules-drag-hint">Rotate the scene to inspect each position</div>
+          </div>
         </article>
-
         <article class="rules-slide" data-slide="5">
           <div class="rules-copy">
-            <div class="rules-section-label">06 · SORTIR ET MARQUER</div>
-            <h3>La force de la pièce devient des points</h3>
-            <p>Le but est de faire sortir tes pièces par le bord opposé. Quand une pièce sort, elle quitte la partie et son camp marque un nombre de points égal à sa force.</p>
+            <div class="rules-section-label">06 · EXIT AND SCORE</div>
+            <h3>A piece’s strength becomes points</h3>
+            <p>Move your pieces off the opposite edge. When a piece exits, it leaves the game and its side scores points
+              equal to its strength.</p>
             <div class="rules-score-grid">
               <div><strong>Explorer</strong><b>+1</b><small>1 point</small></div>
               <div><strong>Vanguard</strong><b>+2</b><small>2 points</small></div>
               <div><strong>Sentinel</strong><b>+3</b><small>3 points</small></div>
             </div>
-            <p>Une pièce sortie ne peut plus bouger ni combattre. Mais attention : sortir avec un Sentinel peut faire gagner immédiatement, selon le moment où il quitte le plateau.</p>
-            <div class="rules-tip"><strong>À toi de choisir :</strong> un Explorer marque moins de points, mais il est plus rapide. Un Sentinel est précieux et plus difficile à faire sortir.</div>
+            <p>An exited piece cannot move or fight again. Be careful: a Sentinel can win the game immediately,
+              depending on when it exits.</p>
+            <div class="rules-tip"><strong>Choose your plan:</strong> an Explorer scores less but is faster. A Sentinel
+              is valuable and harder to get off the board.</div>
           </div>
-          <div class="rules-visual-panel"><div class="rules-visual-scene" data-rule-visual="exit"></div><div class="rules-visual-caption">Une pièce qui passe le bord est retirée et son score est ajouté</div><div class="rules-drag-hint">Tourne la scène pour voir la sortie</div></div>
+          <div class="rules-visual-panel">
+            <div class="rules-visual-scene" data-rule-visual="exit"></div>
+            <div class="rules-visual-caption">A piece crossing the edge is removed and its score is added</div>
+            <div class="rules-drag-hint">Rotate the scene to see the exit</div>
+          </div>
         </article>
-
         <article class="rules-slide" data-slide="6">
           <div class="rules-copy">
-            <div class="rules-section-label">07 · FIN DE PARTIE</div>
-            <h3>Comment savoir qui a gagné ?</h3>
-            <p>La partie s’arrête dès qu’une des situations suivantes se produit :</p>
+            <div class="rules-section-label">07 · END OF THE GAME</div>
+            <h3>How do you win?</h3>
+            <p>The game ends as soon as one of these situations occurs:</p>
             <ol class="rules-bullet-list rules-numbered-list">
-              <li><strong>Le premier à sortir est un Sentinel :</strong> son camp gagne immédiatement.</li>
-              <li><strong>Deux pièces sont sorties au total :</strong> le camp qui a le plus de points gagne. Si les scores sont égaux, c’est un match nul.</li>
-              <li><strong>Un camp n’a plus aucune pièce sur le plateau :</strong> chaque camp ajoute la force de sa pièce restante la plus forte à son score, puis les scores sont comparés.</li>
-              <li><strong>La partie atteint 200 coups :</strong> les scores sont comparés. En cas d’égalité, le jeu regarde l’avancée des pièces vers la sortie, puis leur force.</li>
+              <li><strong>The first piece to exit is a Sentinel:</strong> its side wins immediately.</li>
+              <li><strong>Two pieces have exited in total:</strong> the side with the higher score wins. A tied score is
+                a draw.</li>
+              <li><strong>A side has no pieces left on the board:</strong> each side adds the strength of its strongest
+                remaining piece to its score, then scores are compared.</li>
+              <li><strong>The game reaches 200 moves:</strong> scores are compared. If tied, the game checks how far
+                pieces have advanced toward the exit, then their strength.</li>
             </ol>
-            <div class="rules-tip"><strong>Le détail important :</strong> la victoire instantanée du Sentinel ne marche que s’il est vraiment la toute première pièce à sortir.</div>
+            <div class="rules-tip"><strong>Important detail:</strong> the Sentinel’s instant win only applies if it is
+              truly the very first piece to exit.</div>
           </div>
-          <div class="rules-visual-panel"><div class="rules-visual-scene" data-rule-visual="victory"></div><div class="rules-visual-caption">Sentinel premier à sortir : victoire immédiate</div><div class="rules-drag-hint">Clique et fais glisser pour tourner</div></div>
+          <div class="rules-visual-panel">
+            <div class="rules-visual-scene" data-rule-visual="victory"></div>
+            <div class="rules-visual-caption">Sentinel exits first: immediate victory</div>
+            <div class="rules-drag-hint">Click and drag to rotate</div>
+          </div>
         </article>
-
         <article class="rules-slide" data-slide="7">
           <div class="rules-copy">
-            <div class="rules-section-label">08 · À TON TOUR</div>
-            <h3>Comment jouer, concrètement</h3>
+            <div class="rules-section-label">08 · YOUR TURN</div>
+            <h3>How to play, step by step</h3>
             <ol class="rules-bullet-list rules-numbered-list">
-              <li><strong>Clique sur une de tes pièces.</strong> Les destinations possibles s’affichent.</li>
-              <li><strong>Clique sur une destination en surbrillance.</strong> Le déplacement, le combat ou la sortie se fait tout de suite.</li>
-              <li><strong>Observe la hauteur et les pièces voisines.</strong> Un trajet plus coûteux peut être utile, mais vérifie toujours le résultat d’un combat.</li>
-              <li><strong>Tourne la caméra</strong> en faisant glisser la souris ou ton doigt sur le plateau.</li>
+              <li><strong>Click one of your pieces.</strong> Possible destinations are highlighted.</li>
+              <li><strong>Click a highlighted destination.</strong> The move, attack, or exit happens immediately.</li>
+              <li><strong>Check terrain height and nearby pieces.</strong> An expensive route can still be useful, but
+                always check combat outcomes.</li>
+              <li><strong>Rotate the camera</strong> by dragging your mouse or finger across the board.</li>
             </ol>
-            <p>Si tu n’as aucun coup légal, le jeu passe ton tour automatiquement.</p>
-            <p>Le bouton avec les joueurs permet de passer du bot au mode deux joueurs. Le bouton de nouveau plateau génère une nouvelle carte avec un relief différent.</p>
-            <div class="rules-tip"><strong>Conseil pour ta première partie :</strong> essaie de déplacer un Explorer, regarde le coût affiché par les cases, puis avance progressivement tes autres pièces.</div>
+            <p>If you have no legal move, the game automatically skips your turn.</p>
+            <p>The player icon switches between bot and two-player mode. The new-board button creates a fresh map with
+              different terrain.</p>
+            <div class="rules-tip"><strong>First-game tip:</strong> try moving an Explorer, check the cost shown on the
+              squares, then gradually advance your other pieces.</div>
           </div>
-          <div class="rules-visual-panel"><div class="rules-visual-scene" data-rule-visual="controls"></div><div class="rules-visual-caption">Sélectionne une pièce, puis une destination surlignée</div><div class="rules-drag-hint">Clique et fais glisser pour tourner</div></div>
+          <div class="rules-visual-panel">
+            <div class="rules-visual-scene" data-rule-visual="controls"></div>
+            <div class="rules-visual-caption">Select a piece, then a highlighted destination</div>
+            <div class="rules-drag-hint">Click and drag to rotate</div>
+          </div>
         </article>
       </div>
-
       <footer class="rules-footer">
-        <label class="rules-startup-option"><input id="rules-skip-startup" type="checkbox" /> <span>Ne plus afficher au démarrage</span></label>
+        <label class="rules-startup-option"><input id="rules-skip-startup" type="checkbox" /> <span>Do not show at
+            startup</span></label>
         <div class="rules-navigation">
-          <button id="rules-prev-button" type="button" aria-label="Étape précédente">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18 9 12l6-6"/></svg>
+          <button aria-label="Previous step" id="rules-prev-button" type="button">
+            <svg aria-hidden="true" viewbox="0 0 24 24">
+              <path d="M15 18 9 12l6-6"></path>
+            </svg>
           </button>
           <span id="rules-navigation-count">1 / 8</span>
-          <button id="rules-next-button" type="button" aria-label="Étape suivante">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+          <button aria-label="Next step" id="rules-next-button" type="button">
+            <svg aria-hidden="true" viewbox="0 0 24 24">
+              <path d="m9 18 6-6-6-6"></path>
+            </svg>
           </button>
         </div>
       </footer>
     </section>
   </div>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script type="module" src="script.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/i18next/26.3.4/i18next.min.js"></script>
+  <script src="translations.js"></script>
+  <script src="script.js" type="module"></script>
 </body>
 
 </html>
