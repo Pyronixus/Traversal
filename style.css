@@ -962,3 +962,50 @@ button:hover {
     scroll-behavior: auto;
   }
 }
+
+
+/* Combined piece + board skin catalogue */
+.skin-section-title {
+  grid-column: 1 / -1;
+  margin: 10px 0 0;
+  padding: 11px 2px 2px;
+  border-top: 1px solid var(--bd);
+  color: var(--fg);
+  font: 600 16px/1.25 Texturina, Georgia, serif;
+  letter-spacing: .015em;
+}
+.skin-section-title:first-child {
+  margin-top: 0;
+  padding-top: 2px;
+  border-top: 0;
+}
+.board-skin-heading { margin-top: 12px; }
+.board-preview-canvas {
+  border-radius: 12px;
+}
+.board-skin-card.selected .board-preview-canvas {
+  filter: drop-shadow(0 0 3px rgba(255, 224, 160, .9))
+    drop-shadow(0 0 10px rgba(255, 214, 161, .35));
+}
+.board-skin-card.selected .skin-name {
+  color: var(--fg);
+}
+.skin-card.selected {
+  position: relative;
+}
+.skin-card.selected::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  right: max(2px, calc((100% - 108px) / 2));
+  width: 7px;
+  height: 7px;
+  border-radius: 25%;
+  background: #e0cca4;
+  box-shadow: 0 0 5px rgba(248, 193, 84, 0.7);
+  pointer-events: none;
+}
+@media (max-width: 480px) {
+  .skin-section-title { font-size: 15px; }
+  .skin-card.selected::after { right: max(2px, calc((100% - 96px) / 2)); }
+}

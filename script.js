@@ -582,165 +582,150 @@ function createMarbleTexture(baseColor, veinColor) {
   return marbleTexture;
 }
 
+const finishTextureCache = new Map();
 function createFinishTexture(baseColor, detailColor, finish) {
+  const cacheKey = `${finish}|${baseColor}|${detailColor}`;
+  if (finishTextureCache.has(cacheKey)) return finishTextureCache.get(cacheKey);
   const textureSize = 1024;
   const textureCanvas = document.createElement("canvas");
   textureCanvas.width = textureCanvas.height = textureSize;
-  const textureContext = textureCanvas.getContext("2d");
-  const ctx = textureContext;
+  const ctx = textureCanvas.getContext("2d", { alpha: false });
   ctx.fillStyle = baseColor;
   ctx.fillRect(0, 0, textureSize, textureSize);
 
+  // Seeded variation keeps the finishes consistent across reloads and previews.
+  let seed = 2166136261;
+  for (const char of `${finish}|${baseColor}|${detailColor}`) {
+    seed ^= char.charCodeAt(0);
+    seed = Math.imul(seed, 16777619);
+  }
+  const rand = () => {
+    seed += 0x6D2B79F5;
+    let t = seed;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+  const strokeFlow = (count, color, alpha, width, amp=18, freq=0.008) => {
+    for (let i = 0; i < count; i++) {
+      const baseY = rand() * textureSize;
+      const phase = rand() * Math.PI * 2;
+      ctx.beginPath();
+      for (let x = 0; x <= textureSize; x += 4) {
+        const y = baseY + Math.sin(x * freq + phase) * amp + Math.sin(x * freq * 2.7 + phase * 1.8) * amp * .32;
+        if (!x) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = color; ctx.globalAlpha = alpha * (.45 + rand() * .75);
+      ctx.lineWidth = width * (.55 + rand() * .9); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  };
+
   if (finish === "obsidian") {
-    const depthGradient = ctx.createLinearGradient(
-      0,
-      0,
-      textureSize,
-      textureSize,
-    );
-    depthGradient.addColorStop(0, "rgba(0,0,0,.48)");
-    depthGradient.addColorStop(0.42, "rgba(90,62,125,.12)");
-    depthGradient.addColorStop(1, "rgba(0,0,0,.62)");
-    ctx.fillStyle = depthGradient;
-    ctx.fillRect(0, 0, textureSize, textureSize);
-    for (let crackIndex = 0; crackIndex < 72; crackIndex++) {
-      let x = Math.random() * textureSize;
-      let y = Math.random() * textureSize;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      for (let segment = 0; segment < 7; segment++) {
-        x += (Math.random() - 0.5) * 100;
-        y += (Math.random() - 0.5) * 130;
-        ctx.lineTo(x, y);
+    const g = ctx.createLinearGradient(0, 0, textureSize, textureSize);
+    g.addColorStop(0, "rgba(0,0,0,.58)"); g.addColorStop(.43, "rgba(100,83,139,.17)"); g.addColorStop(1, "rgba(0,0,0,.68)");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, textureSize, textureSize);
+    for (let i = 0; i < 50; i++) {
+      let x = rand() * textureSize, y = rand() * textureSize;
+      ctx.beginPath(); ctx.moveTo(x, y);
+      for (let j = 0; j < 6; j++) { x += (rand() - .48) * 90; y += (rand() - .5) * 100; ctx.lineTo(x, y); }
+      ctx.strokeStyle = detailColor; ctx.globalAlpha = .08 + rand() * .2; ctx.lineWidth = .8 + rand() * 2.2; ctx.stroke();
+    }
+  } else if (finish === "jade" || finish === "amethyst") {
+    const g = ctx.createLinearGradient(0, 0, textureSize, textureSize);
+    g.addColorStop(0, "rgba(255,255,255,.2)"); g.addColorStop(.45, "rgba(0,0,0,.05)"); g.addColorStop(1, "rgba(0,0,0,.34)");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, textureSize, textureSize);
+    strokeFlow(finish === "amethyst" ? 54 : 42, detailColor, finish === "amethyst" ? .23 : .16, finish === "amethyst" ? 2.6 : 2, 34, .006);
+    strokeFlow(90, finish === "amethyst" ? "#f4e9ff" : "#ecfff2", .055, 1, 12, .015);
+    if (finish === "amethyst") {
+      ctx.globalAlpha = .1; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1;
+      for (let i=0;i<40;i++) { const x=rand()*textureSize, y=rand()*textureSize; ctx.beginPath(); ctx.moveTo(x,y); ctx.lineTo(x+(rand()-.5)*150,y+(rand()-.5)*210); ctx.stroke(); }
+    }
+  } else if (finish === "chrome" || finish === "mecha") {
+    const g = ctx.createLinearGradient(0, 0, textureSize, textureSize * .25);
+    g.addColorStop(0, "rgba(255,255,255,.72)"); g.addColorStop(.14, "rgba(35,48,67,.54)"); g.addColorStop(.3, "rgba(255,255,255,.85)"); g.addColorStop(.51, "rgba(52,68,86,.46)"); g.addColorStop(.76, "rgba(255,255,255,.72)"); g.addColorStop(1, "rgba(12,20,34,.38)");
+    ctx.fillStyle = g; ctx.fillRect(0, 0, textureSize, textureSize);
+    if (finish === "mecha") {
+      const step = 128;
+      for (let y=20;y<textureSize;y+=step) for (let x=20;x<textureSize;x+=step) {
+        const w=74+rand()*22, h=62+rand()*28;
+        ctx.fillStyle = "rgba(0,0,0,.13)"; ctx.fillRect(x,y,w,h);
+        ctx.strokeStyle = "rgba(255,255,255,.26)"; ctx.lineWidth = 2; ctx.strokeRect(x+2,y+2,w-4,h-4);
+        ctx.strokeStyle = detailColor; ctx.globalAlpha=.42; ctx.lineWidth=3;
+        ctx.beginPath(); ctx.moveTo(x+12,y+h-12); ctx.lineTo(x+12,y+14); ctx.lineTo(x+w*.58,y+14); ctx.stroke(); ctx.globalAlpha=1;
+        for (const [rx,ry] of [[x+9,y+9],[x+w-9,y+9],[x+9,y+h-9],[x+w-9,y+h-9]]) { ctx.fillStyle="#d9e1e8"; ctx.beginPath(); ctx.arc(rx,ry,3,0,Math.PI*2); ctx.fill(); }
       }
-      ctx.strokeStyle = detailColor;
-      ctx.globalAlpha = 0.09 + Math.random() * 0.2;
-      ctx.lineWidth = 1 + Math.random() * 2.5;
-      ctx.stroke();
+    } else {
+      for (let i=0;i<260;i++) { const y=rand()*textureSize; ctx.strokeStyle=i%3?"rgba(255,255,255,.05)":"rgba(0,12,28,.07)"; ctx.lineWidth=.5+rand()*1.4; ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(textureSize,y+(rand()-.5)*18); ctx.stroke(); }
     }
-  } else if (finish === "jade") {
-    const jadeDepth = ctx.createLinearGradient(0, 0, textureSize, textureSize);
-    jadeDepth.addColorStop(0, "rgba(172,255,211,.18)");
-    jadeDepth.addColorStop(0.45, "rgba(3,54,40,.12)");
-    jadeDepth.addColorStop(1, "rgba(0,24,19,.36)");
-    ctx.fillStyle = jadeDepth;
-    ctx.fillRect(0, 0, textureSize, textureSize);
-    for (let patchIndex = 0; patchIndex < 90; patchIndex++) {
-      const x = Math.random() * textureSize;
-      const y = Math.random() * textureSize;
-      const radius = 12 + Math.random() * 85;
-      const patch = ctx.createRadialGradient(x, y, 1, x, y, radius);
-      patch.addColorStop(
-        0,
-        `rgba(180,255,219,${0.025 + Math.random() * 0.055})`,
-      );
-      patch.addColorStop(1, "rgba(0,28,19,0)");
-      ctx.fillStyle = patch;
-      ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  } else if (finish === "bronze" || finish === "sand") {
+    const g = ctx.createLinearGradient(0,0,textureSize,textureSize);
+    g.addColorStop(0, finish === "sand" ? "rgba(255,240,195,.32)" : "rgba(255,218,150,.24)");
+    g.addColorStop(.5, "rgba(99,60,32,.04)"); g.addColorStop(1, finish === "sand" ? "rgba(93,55,24,.26)" : "rgba(19,16,14,.38)");
+    ctx.fillStyle=g; ctx.fillRect(0,0,textureSize,textureSize);
+    if (finish === "sand") {
+      strokeFlow(50, "#f9d99a", .14, 1.7, 24, .005);
+      for(let i=0;i<3500;i++){const x=rand()*textureSize,y=rand()*textureSize,r=.35+rand()*1.15;ctx.fillStyle=rand()>.52?"rgba(255,246,211,.4)":"rgba(75,46,25,.16)";ctx.fillRect(x,y,r,r);}
+    } else {
+      for(let i=0;i<120;i++){const x=rand()*textureSize,y=rand()*textureSize,r=6+rand()*52;const pg=ctx.createRadialGradient(x,y,0,x,y,r);pg.addColorStop(0,`rgba(61,151,119,${.06+rand()*.17})`);pg.addColorStop(1,"rgba(23,54,45,0)");ctx.fillStyle=pg;ctx.fillRect(x-r,y-r,r*2,r*2);}
+      for(let i=0;i<420;i++){const y=rand()*textureSize;ctx.strokeStyle=rand()>.5?"rgba(255,232,178,.08)":"rgba(34,17,9,.07)";ctx.lineWidth=.5+rand()*1.4;ctx.beginPath();ctx.moveTo(rand()*textureSize,y);ctx.lineTo(rand()*textureSize,y+(rand()-.5)*9);ctx.stroke();}
     }
-    for (let veinIndex = 0; veinIndex < 38; veinIndex++) {
-      let x = Math.random() * textureSize;
-      let y = Math.random() * textureSize;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      for (let segment = 0; segment < 12; segment++) {
-        x += (Math.random() - 0.5) * 70;
-        y += (Math.random() - 0.5) * 55;
-        ctx.lineTo(x, y);
-      }
-      ctx.strokeStyle = detailColor;
-      ctx.globalAlpha = 0.07 + Math.random() * 0.12;
-      ctx.lineWidth = 1 + Math.random() * 3;
-      ctx.stroke();
+  } else if (finish === "neon" || finish === "lava" || finish === "aurora" || finish === "solar" || finish === "celestial" || finish === "abyss" || finish === "spectral") {
+    const g=ctx.createLinearGradient(0,0,textureSize,textureSize);
+    g.addColorStop(0, finish === "solar" ? "rgba(255,155,37,.18)" : "rgba(0,0,0,.42)");
+    g.addColorStop(.55, finish === "spectral" ? "rgba(105,62,190,.24)" : "rgba(0,0,0,.1)");
+    g.addColorStop(1, finish === "abyss" ? "rgba(0,8,40,.54)" : "rgba(0,0,0,.34)");
+    ctx.fillStyle=g;ctx.fillRect(0,0,textureSize,textureSize);
+    if (finish === "celestial") {
+      const nebula = ctx.createRadialGradient(textureSize*.52, textureSize*.46, 3, textureSize*.52, textureSize*.46, textureSize*.72);
+      nebula.addColorStop(0, "rgba(112,105,255,.34)"); nebula.addColorStop(.45, "rgba(62,52,140,.2)"); nebula.addColorStop(1, "rgba(0,0,0,0)");
+      ctx.fillStyle = nebula; ctx.fillRect(0,0,textureSize,textureSize);
+      for(let i=0;i<420;i++) { const x=rand()*textureSize, y=rand()*textureSize, r=.5+rand()*2.6; ctx.fillStyle=rand()>.6?"#ffffff":detailColor; ctx.globalAlpha=.24+rand()*.7; ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill(); }
+      ctx.globalAlpha=.28; ctx.strokeStyle=detailColor; ctx.lineWidth=1;
+      for(let i=0;i<26;i++) { const x=rand()*textureSize,y=rand()*textureSize;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+(rand()-.5)*110,y+(rand()-.5)*110);ctx.lineTo(x+(rand()-.5)*180,y+(rand()-.5)*170);ctx.stroke(); }
+      ctx.globalAlpha=1;
+    } else if (finish === "aurora") {
+      for(let i=0;i<34;i++){ctx.beginPath();const baseY=rand()*textureSize, phase=rand()*6.28;for(let x=0;x<=textureSize;x+=4){const y=baseY+Math.sin(x*.004+phase)*95+Math.sin(x*.009+phase*1.7)*38;if(!x)ctx.moveTo(x,y);else ctx.lineTo(x,y);}const grad=ctx.createLinearGradient(0,0,textureSize,0);grad.addColorStop(0,"#3de4c6");grad.addColorStop(.45,detailColor);grad.addColorStop(1,"#8b72ff");ctx.strokeStyle=grad;ctx.globalAlpha=.11+rand()*.16;ctx.lineWidth=5+rand()*14;ctx.stroke();}ctx.globalAlpha=1;
+    } else if (finish === "solar") {
+      const rg=ctx.createRadialGradient(textureSize*.68,textureSize*.32,4,textureSize*.68,textureSize*.32,textureSize*.62);rg.addColorStop(0,"rgba(255,247,190,.48)");rg.addColorStop(.18,"rgba(255,161,48,.23)");rg.addColorStop(1,"rgba(255,75,16,0)");ctx.fillStyle=rg;ctx.fillRect(0,0,textureSize,textureSize);
+      for(let i=0;i<100;i++){const x=rand()*textureSize,y=rand()*textureSize,r=1+rand()*3;ctx.fillStyle=rand()>.5?"rgba(255,240,178,.45)":"rgba(255,99,27,.28)";ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}
+      strokeFlow(38,detailColor,.17,2.1,38,.007);
+    } else if (finish === "lava") {
+      for(let i=0;i<65;i++){let x=rand()*textureSize,y=rand()*textureSize;ctx.beginPath();ctx.moveTo(x,y);for(let j=0;j<8;j++){x+=(rand()-.5)*95;y+=(rand()-.5)*100;ctx.lineTo(x,y);}ctx.strokeStyle=rand()>.45?"#ffcc59":detailColor;ctx.globalAlpha=.22+rand()*.34;ctx.lineWidth=1.4+rand()*3.5;ctx.stroke();}ctx.globalAlpha=1;
+    } else if (finish === "abyss") {
+      strokeFlow(26,"#3ed5e8",.12,1.8,35,.006);
+      for(let i=0;i<190;i++){const x=rand()*textureSize,y=rand()*textureSize,r=1+rand()*4;const pg=ctx.createRadialGradient(x,y,0,x,y,r*4);pg.addColorStop(0,detailColor);pg.addColorStop(1,"rgba(0,0,0,0)");ctx.globalAlpha=.18+rand()*.28;ctx.fillStyle=pg;ctx.beginPath();ctx.arc(x,y,r*4,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;
+    } else if (finish === "spectral") {
+      const band=ctx.createLinearGradient(0,0,textureSize,textureSize*.65);band.addColorStop(0,"rgba(255,80,190,.28)");band.addColorStop(.22,"rgba(111,112,255,.26)");band.addColorStop(.45,"rgba(66,235,220,.22)");band.addColorStop(.7,"rgba(255,220,122,.18)");band.addColorStop(1,"rgba(255,255,255,.08)");ctx.fillStyle=band;ctx.fillRect(0,0,textureSize,textureSize);
+      for(let i=0;i<80;i++){const x=rand()*textureSize,y=rand()*textureSize,r=10+rand()*95;ctx.beginPath();ctx.ellipse(x,y,r,r*(.18+rand()*.25),rand()*.6,0,Math.PI*2);ctx.strokeStyle=i%2?detailColor:"rgba(255,255,255,.8)";ctx.globalAlpha=.025+rand()*.08;ctx.lineWidth=.6+rand()*1.5;ctx.stroke();}ctx.globalAlpha=1;
+    } else {
+      for(let i=0;i<95;i++){let x=rand()*textureSize,y=rand()*textureSize;ctx.beginPath();ctx.moveTo(x,y);for(let j=0;j<4;j++){if(rand()>.5)x+=(rand()>.5?1:-1)*(24+rand()*90);else y+=(rand()>.5?1:-1)*(24+rand()*90);ctx.lineTo(x,y);}ctx.strokeStyle=detailColor;ctx.globalAlpha=.18+rand()*.36;ctx.lineWidth=1+rand()*2.5;ctx.stroke();ctx.beginPath();ctx.arc(x,y,2+rand()*4,0,Math.PI*2);ctx.fillStyle=detailColor;ctx.fill();}ctx.globalAlpha=1;
     }
-  } else if (finish === "chrome") {
-    const metalGradient = ctx.createLinearGradient(
-      0,
-      0,
-      textureSize,
-      textureSize * 0.18,
-    );
-    metalGradient.addColorStop(0, "rgba(255,255,255,.58)");
-    metalGradient.addColorStop(0.16, "rgba(35,58,78,.48)");
-    metalGradient.addColorStop(0.31, "rgba(255,255,255,.8)");
-    metalGradient.addColorStop(0.52, "rgba(65,87,109,.4)");
-    metalGradient.addColorStop(0.72, "rgba(255,255,255,.72)");
-    metalGradient.addColorStop(1, "rgba(24,34,49,.35)");
-    ctx.fillStyle = metalGradient;
-    ctx.fillRect(0, 0, textureSize, textureSize);
-    for (let streakIndex = 0; streakIndex < 240; streakIndex++) {
-      const y = Math.random() * textureSize;
-      ctx.strokeStyle =
-        streakIndex % 3 ? "rgba(255,255,255,.035)" : "rgba(0,12,28,.045)";
-      ctx.lineWidth = 1 + Math.random() * 2;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(textureSize, y + (Math.random() - 0.5) * 18);
-      ctx.stroke();
-    }
-  } else if (finish === "bronze") {
-    const patinaTint = ctx.createLinearGradient(0, 0, textureSize, textureSize);
-    patinaTint.addColorStop(0, "rgba(255,218,150,.22)");
-    patinaTint.addColorStop(0.48, "rgba(99,46,25,.06)");
-    patinaTint.addColorStop(1, "rgba(19,16,14,.36)");
-    ctx.fillStyle = patinaTint;
-    ctx.fillRect(0, 0, textureSize, textureSize);
-    for (let patinaIndex = 0; patinaIndex < 100; patinaIndex++) {
-      const x = Math.random() * textureSize;
-      const y = Math.random() * textureSize;
-      const radius = 5 + Math.random() * 55;
-      const patina = ctx.createRadialGradient(x, y, 0, x, y, radius);
-      patina.addColorStop(0, `rgba(63,151,119,${0.12 + Math.random() * 0.22})`);
-      patina.addColorStop(0.6, "rgba(49,102,80,.08)");
-      patina.addColorStop(1, "rgba(23,54,45,0)");
-      ctx.fillStyle = patina;
-      ctx.fillRect(x - radius, y - radius, radius * 2, radius * 2);
-    }
-    for (let scratchIndex = 0; scratchIndex < 400; scratchIndex++) {
-      const y = Math.random() * textureSize;
-      ctx.strokeStyle =
-        Math.random() > 0.5 ? "rgba(255,232,178,.07)" : "rgba(34,17,9,.06)";
-      ctx.lineWidth = 1 + Math.random() * 2;
-      ctx.beginPath();
-      ctx.moveTo(Math.random() * textureSize, y);
-      ctx.lineTo(Math.random() * textureSize, y + (Math.random() - 0.5) * 8);
-      ctx.stroke();
-    }
-  } else if (finish === "neon") {
-    const darkBase = ctx.createLinearGradient(0, 0, textureSize, textureSize);
-    darkBase.addColorStop(0, "rgba(2,7,22,.55)");
-    darkBase.addColorStop(1, "rgba(0,0,0,.4)");
-    ctx.fillStyle = darkBase;
-    ctx.fillRect(0, 0, textureSize, textureSize);
-    for (let traceIndex = 0; traceIndex < 90; traceIndex++) {
-      let x = Math.random() * textureSize;
-      let y = Math.random() * textureSize;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      for (let segment = 0; segment < 4; segment++) {
-        if (Math.random() > 0.5)
-          x += (Math.random() > 0.5 ? 1 : -1) * (24 + Math.random() * 90);
-        else y += (Math.random() > 0.5 ? 1 : -1) * (24 + Math.random() * 90);
-        ctx.lineTo(x, y);
-      }
-      ctx.strokeStyle = detailColor;
-      ctx.globalAlpha = 0.24 + Math.random() * 0.38;
-      ctx.lineWidth = 1.5 + Math.random() * 3;
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.arc(x, y, 3 + Math.random() * 5, 0, Math.PI * 2);
-      ctx.fillStyle = detailColor;
-      ctx.fill();
-    }
+  } else if (finish === "ice") {
+    const g=ctx.createLinearGradient(0,0,textureSize,textureSize);g.addColorStop(0,"rgba(255,255,255,.3)");g.addColorStop(.5,"rgba(115,201,234,.13)");g.addColorStop(1,"rgba(0,40,90,.23)");ctx.fillStyle=g;ctx.fillRect(0,0,textureSize,textureSize);
+    for(let i=0;i<95;i++){let x=rand()*textureSize,y=rand()*textureSize;ctx.beginPath();ctx.moveTo(x,y);for(let j=0;j<5;j++){x+=(rand()-.5)*115;y+=(rand()-.5)*115;ctx.lineTo(x,y);}ctx.strokeStyle=i%3?"rgba(238,255,255,.5)":detailColor;ctx.globalAlpha=.18+rand()*.3;ctx.lineWidth=.6+rand()*2;ctx.stroke();}ctx.globalAlpha=1;
+  } else if (finish === "coral") {
+    const g=ctx.createLinearGradient(0,0,textureSize,textureSize);g.addColorStop(0,"rgba(255,220,205,.18)");g.addColorStop(1,"rgba(0,42,51,.22)");ctx.fillStyle=g;ctx.fillRect(0,0,textureSize,textureSize);
+    for(let i=0;i<160;i++){const x=rand()*textureSize,y=rand()*textureSize,r=4+rand()*24;ctx.fillStyle=rand()>.5?detailColor:"#ffe2d7";ctx.globalAlpha=.08+rand()*.22;ctx.beginPath();ctx.ellipse(x,y,r,r*(.45+rand()),rand()*3,0,Math.PI*2);ctx.fill();}ctx.globalAlpha=1;
+    for(let i=0;i<55;i++){let x=rand()*textureSize,y=rand()*textureSize;ctx.beginPath();ctx.moveTo(x,y);for(let j=0;j<5;j++){x+=(rand()-.5)*46;y-=10+rand()*35;ctx.lineTo(x,y);}ctx.strokeStyle=detailColor;ctx.globalAlpha=.12+rand()*.2;ctx.lineWidth=1+rand()*3;ctx.stroke();}ctx.globalAlpha=1;
+  } else if (finish === "moss") {
+    const g=ctx.createLinearGradient(0,0,textureSize,textureSize);g.addColorStop(0,"rgba(184,216,115,.2)");g.addColorStop(.45,"rgba(15,63,34,.06)");g.addColorStop(1,"rgba(0,20,13,.34)");ctx.fillStyle=g;ctx.fillRect(0,0,textureSize,textureSize);
+    for(let i=0;i<2200;i++){const x=rand()*textureSize,y=rand()*textureSize,r=.7+rand()*4;ctx.fillStyle=rand()>.5?"rgba(177,210,105,.5)":"rgba(5,37,22,.42)";ctx.globalAlpha=.16+rand()*.45;ctx.beginPath();ctx.ellipse(x,y,r,r*(.35+rand()*.8),rand()*Math.PI,0,Math.PI*2);ctx.fill();}
+    for(let i=0;i<110;i++){const x=rand()*textureSize,y=rand()*textureSize;ctx.strokeStyle=rand()>.5?"rgba(202,232,147,.25)":"rgba(9,49,30,.2)";ctx.lineWidth=.8+rand()*1.5;ctx.beginPath();ctx.moveTo(x,y);ctx.quadraticCurveTo(x+20,y-20,x+35+rand()*30,y+rand()*35);ctx.stroke();}ctx.globalAlpha=1;
+  } else if (finish === "candy") {
+    const g=ctx.createLinearGradient(0,0,textureSize,textureSize);g.addColorStop(0,"rgba(255,255,255,.48)");g.addColorStop(.4,"rgba(255,150,218,.2)");g.addColorStop(1,"rgba(22,79,115,.12)");ctx.fillStyle=g;ctx.fillRect(0,0,textureSize,textureSize);
+    strokeFlow(64,detailColor,.18,3.5,42,.008);strokeFlow(48,"#fff4fc",.12,1.5,26,.01);
+    for(let i=0;i<250;i++){const x=rand()*textureSize,y=rand()*textureSize,r=.8+rand()*2.2;ctx.fillStyle=rand()>.5?"rgba(255,255,255,.55)":"rgba(255,145,218,.25)";ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}
   }
   ctx.globalAlpha = 1;
   const finishTexture = new THREE.CanvasTexture(textureCanvas);
   finishTexture.encoding = THREE.sRGBEncoding;
   finishTexture.wrapS = finishTexture.wrapT = THREE.RepeatWrapping;
-  finishTexture.anisotropy = Math.min(
-    16,
-    webGLRenderer.capabilities.getMaxAnisotropy(),
-  );
+  finishTexture.anisotropy = Math.min(16, webGLRenderer.capabilities.getMaxAnisotropy());
+  finishTexture.generateMipmaps = true;
+  finishTexture.minFilter = THREE.LinearMipmapLinearFilter;
+  finishTexture.magFilter = THREE.LinearFilter;
+  finishTextureCache.set(cacheKey, finishTexture);
   return finishTexture;
 }
 
@@ -758,7 +743,7 @@ function createSkinMaterial({
   const materialTexture =
     finish === "marble"
       ? createMarbleTexture(color, veinColor)
-      : ["obsidian", "jade", "chrome", "bronze", "neon"].includes(finish)
+      : ["obsidian", "jade", "chrome", "bronze", "neon", "aurora", "solar", "celestial", "coral", "ice", "amethyst", "lava", "moss", "abyss", "candy", "sand", "mecha", "spectral"].includes(finish)
         ? createFinishTexture(color, veinColor, finish)
         : null;
 
@@ -1136,6 +1121,102 @@ const PIECE_SKINS = {
   },
 };
 
+// Additional skins use the same piece geometry and material pipeline.
+const EXTRA_PIECE_SKINS = {
+  aurora: {
+    label: "Aurora",
+    players: [
+      { body: createSkinMaterial({ color: "#183d50", finish: "aurora", veinColor: "#38e0c8", roughness: 0.17, metalness: 0.32, clearcoat: 0.98, emissive: "#38e0c8", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#38e0c8", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#e7fff7", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#38e0c8", emissiveIntensity: 0.16 }) },
+      { body: createSkinMaterial({ color: "#12324d", finish: "aurora", veinColor: "#83b9ff", roughness: 0.17, metalness: 0.32, clearcoat: 0.98, emissive: "#83b9ff", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#83b9ff", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#b7d9ff", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#83b9ff", emissiveIntensity: 0.16 }) },
+    ],
+  },
+  solar: {
+    label: "Solar Flare",
+    players: [
+      { body: createSkinMaterial({ color: "#51251c", finish: "solar", veinColor: "#ff9e38", roughness: 0.22, metalness: 0.58, clearcoat: 0.95, emissive: "#ff9e38", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#ff9e38", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#ffe0a1", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#ff9e38", emissiveIntensity: 0.16 }) },
+      { body: createSkinMaterial({ color: "#5b2d12", finish: "solar", veinColor: "#ffe36d", roughness: 0.22, metalness: 0.58, clearcoat: 0.95, emissive: "#ffd05a", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#ffd05a", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#fff0b8", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#ffd05a", emissiveIntensity: 0.16 }) },
+    ],
+  },
+  celestial: {
+    label: "Celestial",
+    players: [
+      { body: createSkinMaterial({ color: "#17243d", finish: "celestial", veinColor: "#7f9dff", roughness: 0.18, metalness: 0.28, clearcoat: 1, emissive: "#7f9dff", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#7f9dff", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#d9e4ff", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#7f9dff", emissiveIntensity: 0.16 }) },
+      { body: createSkinMaterial({ color: "#30204c", finish: "celestial", veinColor: "#e5b5ff", roughness: 0.18, metalness: 0.28, clearcoat: 1, emissive: "#e5b5ff", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#e5b5ff", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#f4d9ff", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#e5b5ff", emissiveIntensity: 0.16 }) },
+    ],
+  },
+  coral: {
+    label: "Coral Reef",
+    players: [
+      { body: createSkinMaterial({ color: "#71364a", finish: "coral", veinColor: "#ff8c9d", roughness: 0.27, metalness: 0.12, clearcoat: 0.88, emissive: "#ff8c9d", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#ff8c9d", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#ffd5d8", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#ff8c9d", emissiveIntensity: 0.16 }) },
+      { body: createSkinMaterial({ color: "#174e5a", finish: "coral", veinColor: "#54e4d1", roughness: 0.27, metalness: 0.12, clearcoat: 0.88, emissive: "#54e4d1", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#54e4d1", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#b7fff2", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#54e4d1", emissiveIntensity: 0.16 }) },
+    ],
+  },
+  glacier: {
+    label: "Glacier",
+    players: [
+      { body: createSkinMaterial({ color: "#d5f2f4", finish: "ice", veinColor: "#6bbfd5", roughness: 0.13, metalness: 0.24, clearcoat: 1, emissive: "#6bbfd5", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#6bbfd5", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#ffffff", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#6bbfd5", emissiveIntensity: 0.16 }) },
+      { body: createSkinMaterial({ color: "#243d65", finish: "ice", veinColor: "#8ab8ff", roughness: 0.13, metalness: 0.24, clearcoat: 1, emissive: "#8ab8ff", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#8ab8ff", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#d3e4ff", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#8ab8ff", emissiveIntensity: 0.16 }) },
+    ],
+  },
+  royal: {
+    label: "Royal Amethyst",
+    players: [
+      { body: createSkinMaterial({ color: "#33204f", finish: "amethyst", veinColor: "#c39aff", roughness: 0.17, metalness: 0.32, clearcoat: 1, emissive: "#c39aff", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#c39aff", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#ead7ff", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#c39aff", emissiveIntensity: 0.16 }) },
+      { body: createSkinMaterial({ color: "#201535", finish: "amethyst", veinColor: "#d9b66f", roughness: 0.17, metalness: 0.32, clearcoat: 1, emissive: "#d9b66f", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#d9b66f", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#fff0c4", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#d9b66f", emissiveIntensity: 0.16 }) },
+    ],
+  },
+  inferno: {
+    label: "Inferno",
+    players: [
+      { body: createSkinMaterial({ color: "#421a16", finish: "lava", veinColor: "#ff5a24", roughness: 0.24, metalness: 0.2, clearcoat: 0.96, emissive: "#ff5a24", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#ff5a24", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#ffc2a1", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#ff5a24", emissiveIntensity: 0.16 }) },
+      { body: createSkinMaterial({ color: "#402018", finish: "lava", veinColor: "#ffcf57", roughness: 0.24, metalness: 0.2, clearcoat: 0.96, emissive: "#ffcf57", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#ffcf57", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#fff0a1", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#ffcf57", emissiveIntensity: 0.16 }) },
+    ],
+  },
+  moss: {
+    label: "Ancient Grove",
+    players: [
+      { body: createSkinMaterial({ color: "#234532", finish: "moss", veinColor: "#9cc56a", roughness: 0.34, metalness: 0.14, clearcoat: 0.72, emissive: "#9cc56a", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#9cc56a", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#d8f0b2", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#9cc56a", emissiveIntensity: 0.16 }) },
+      { body: createSkinMaterial({ color: "#4b3324", finish: "moss", veinColor: "#d8ad70", roughness: 0.34, metalness: 0.14, clearcoat: 0.72, emissive: "#d8ad70", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#d8ad70", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#f5d7a4", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#d8ad70", emissiveIntensity: 0.16 }) },
+    ],
+  },
+  abyss: {
+    label: "Abyssal Pearl",
+    players: [
+      { body: createSkinMaterial({ color: "#102d3a", finish: "abyss", veinColor: "#44b7c8", roughness: 0.16, metalness: 0.38, clearcoat: 1, emissive: "#44b7c8", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#44b7c8", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#b8f5ff", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#44b7c8", emissiveIntensity: 0.16 }) },
+      { body: createSkinMaterial({ color: "#28264e", finish: "abyss", veinColor: "#a89cff", roughness: 0.16, metalness: 0.38, clearcoat: 1, emissive: "#a89cff", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#a89cff", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#ddd5ff", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#a89cff", emissiveIntensity: 0.16 }) },
+    ],
+  },
+  candy: {
+    label: "Prism Candy",
+    players: [
+      { body: createSkinMaterial({ color: "#7b356a", finish: "candy", veinColor: "#ff9edb", roughness: 0.16, metalness: 0.25, clearcoat: 1, emissive: "#ff9edb", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#ff9edb", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#ffd7f0", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#ff9edb", emissiveIntensity: 0.16 }) },
+      { body: createSkinMaterial({ color: "#245a72", finish: "candy", veinColor: "#7cf2ff", roughness: 0.16, metalness: 0.25, clearcoat: 1, emissive: "#7cf2ff", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#7cf2ff", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#c8fbff", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#7cf2ff", emissiveIntensity: 0.16 }) },
+    ],
+  },
+  sandstorm: {
+    label: "Desert King",
+    players: [
+      { body: createSkinMaterial({ color: "#75421e", finish: "sand", veinColor: "#e8b35b", roughness: 0.42, metalness: 0.18, clearcoat: 0.7, emissive: "#e8b35b", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#e8b35b", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#ffe0a0", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#e8b35b", emissiveIntensity: 0.16 }) },
+      { body: createSkinMaterial({ color: "#493d32", finish: "sand", veinColor: "#c9c4b8", roughness: 0.42, metalness: 0.18, clearcoat: 0.7, emissive: "#c9c4b8", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#c9c4b8", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#eee6d4", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#c9c4b8", emissiveIntensity: 0.16 }) },
+    ],
+  },
+  mecha: {
+    label: "Mecha Core",
+    players: [
+      { body: createSkinMaterial({ color: "#292d36", finish: "mecha", veinColor: "#ff654f", roughness: 0.2, metalness: 0.78, clearcoat: 0.8, emissive: "#ff654f", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#ff654f", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#ffc1b6", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#ff654f", emissiveIntensity: 0.16 }) },
+      { body: createSkinMaterial({ color: "#172e3d", finish: "mecha", veinColor: "#4fe0ff", roughness: 0.2, metalness: 0.78, clearcoat: 0.8, emissive: "#4fe0ff", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#4fe0ff", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#b9f7ff", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#4fe0ff", emissiveIntensity: 0.16 }) },
+    ],
+  },
+  spectral: {
+    label: "Spectral Glass",
+    players: [
+      { body: createSkinMaterial({ color: "#45356c", finish: "spectral", veinColor: "#d8c4ff", roughness: 0.16, metalness: 0.48, clearcoat: 1, emissive: "#d8c4ff", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#d8c4ff", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#f0e5ff", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#d8c4ff", emissiveIntensity: 0.16 }) },
+      { body: createSkinMaterial({ color: "#234d57", finish: "spectral", veinColor: "#a5f6e8", roughness: 0.16, metalness: 0.48, clearcoat: 1, emissive: "#a5f6e8", emissiveIntensity: 0.10 }), inset: createSkinMaterial({ color: "#a5f6e8", finish: "metal", roughness: 0.16, metalness: 0.72, clearcoat: 1 }), accent: createSkinMaterial({ color: "#d6fff7", finish: "metal", roughness: 0.13, metalness: 0.72, emissive: "#a5f6e8", emissiveIntensity: 0.16 }) },
+    ],
+  },
+};
+Object.assign(PIECE_SKINS, EXTRA_PIECE_SKINS);
+
 let activeSkinId = "wood";
 const getSkinMaterials = (playerNumber) =>
   PIECE_SKINS[activeSkinId].players[playerNumber - 1];
@@ -1157,6 +1238,158 @@ function applySkinToAllPieces() {
   if (!PIECE_MESHES) return;
   PIECE_MESHES.forEach(applySkinToPiece);
 }
+
+const BOARD_SKINS = {
+  original: { label: "Original Terrain", colors: ["#79572f", "#9a7541"], accent: "#8a5a20", pattern: "original", roughness: 0.5, metalness: 0.04, bumpScale: 0.5, emissiveIntensity: 0 },
+  walnut: { label: "Midnight Walnut", colors: ["#251511", "#75452d"], accent: "#d9a66f", pattern: "grain", roughness: 0.38, metalness: 0.12, bumpScale: 0.095, emissiveIntensity: 0.012 },
+  arctic: { label: "Arctic Glass", colors: ["#9fcbdc", "#eaf7fc"], accent: "#8cecff", pattern: "ice", roughness: 0.17, metalness: 0.22, bumpScale: 0.035, emissiveIntensity: 0.035 },
+  emerald: { label: "Emerald Palace", colors: ["#0b3027", "#2d6e54"], accent: "#d9bf73", pattern: "marble", roughness: 0.24, metalness: 0.2, bumpScale: 0.07, emissiveIntensity: 0.02 },
+  obsidian: { label: "Obsidian Circuit", colors: ["#10131b", "#252d3c"], accent: "#55ddff", pattern: "circuit", roughness: 0.21, metalness: 0.32, bumpScale: 0.045, emissiveIntensity: 0.12 },
+  sunset: { label: "Solar Dunes", colors: ["#87472d", "#e8bd79"], accent: "#ffdca0", pattern: "sand", roughness: 0.67, metalness: 0.025, bumpScale: 0.12, emissiveIntensity: 0.008 },
+};
+let activeBoardSkinId = "original";
+const boardSkinTextures = new Map();
+function createBoardSkinTexture(id) {
+  if (id === "original") return null;
+  if (boardSkinTextures.has(id)) return boardSkinTextures.get(id);
+  const skin = BOARD_SKINS[id], size = 1024;
+  const canvas = document.createElement("canvas"), bumpCanvas = document.createElement("canvas"), roughnessCanvas = document.createElement("canvas");
+  canvas.width = canvas.height = bumpCanvas.width = bumpCanvas.height = size;
+  roughnessCanvas.width = roughnessCanvas.height = 512;
+  const ctx = canvas.getContext("2d", { alpha: false }), bump = bumpCanvas.getContext("2d", { alpha: false });
+  const rough = roughnessCanvas.getContext("2d", { alpha: false }), roughSize = roughnessCanvas.width;
+  ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, size, size);
+  bump.fillStyle = "#808080"; bump.fillRect(0, 0, size, size);
+  rough.fillStyle = skin.pattern === "ice" || skin.pattern === "circuit" ? "#ababab" : skin.pattern === "sand" ? "#e9e9e9" : "#d6d6d6";
+  rough.fillRect(0, 0, roughSize, roughSize);
+  let seed = 2166136261;
+  for (const ch of id) { seed ^= ch.charCodeAt(0); seed = Math.imul(seed, 16777619); }
+  const rand = () => { seed += 0x6D2B79F5; let t=seed; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; };
+  const strokeWaves = (count, color, alpha, width, amp, freq) => {
+    for (let i=0;i<count;i++) {
+      const y0=rand()*size, phase=rand()*Math.PI*2;
+      ctx.beginPath(); bump.beginPath();
+      for(let x=0;x<=size;x+=3){const y=y0+Math.sin(x*freq+phase)*amp+Math.sin(x*freq*2.2+phase*1.6)*amp*.28;if(!x){ctx.moveTo(x,y);bump.moveTo(x,y);}else{ctx.lineTo(x,y);bump.lineTo(x,y);}}
+      ctx.strokeStyle=color;ctx.globalAlpha=alpha*(.5+rand()*.8);ctx.lineWidth=width*(.5+rand());ctx.stroke();
+      bump.strokeStyle=rand()>.5?"#a0a0a0":"#686868";bump.globalAlpha=.25;bump.lineWidth=Math.max(.5,width*.55);bump.stroke();
+    }
+    ctx.globalAlpha=bump.globalAlpha=1;
+  };
+  if (skin.pattern === "grain") {
+    const g=ctx.createLinearGradient(0,0,size,size*.1);g.addColorStop(0,"rgba(71,35,18,.22)");g.addColorStop(.45,"rgba(255,222,173,.12)");g.addColorStop(1,"rgba(18,8,5,.2)");ctx.fillStyle=g;ctx.fillRect(0,0,size,size);
+    strokeWaves(210,"#e4b17b",.19,2.2,7,.012);strokeWaves(100,"#352016",.12,1.2,13,.009);
+    for(let i=0;i<28;i++){const x=rand()*size,y=rand()*size,rx=18+rand()*48,ry=3+rand()*8;ctx.strokeStyle="rgba(27,14,9,.28)";ctx.lineWidth=1;ctx.beginPath();ctx.ellipse(x,y,rx,ry,rand()*.25,0,Math.PI*2);ctx.stroke();}
+  } else if (skin.pattern === "ice") {
+    const g=ctx.createLinearGradient(0,0,size,size);g.addColorStop(0,"rgba(255,255,255,.48)");g.addColorStop(.5,"rgba(107,204,237,.16)");g.addColorStop(1,"rgba(16,78,119,.2)");ctx.fillStyle=g;ctx.fillRect(0,0,size,size);
+    for(let i=0;i<100;i++){let x=rand()*size,y=rand()*size;ctx.beginPath();bump.beginPath();ctx.moveTo(x,y);bump.moveTo(x,y);for(let j=0;j<6;j++){x+=(rand()-.5)*115;y+=(rand()-.5)*110;ctx.lineTo(x,y);bump.lineTo(x,y);}ctx.strokeStyle=i%3?"rgba(255,255,255,.75)":"rgba(44,154,204,.55)";ctx.globalAlpha=.18+rand()*.36;ctx.lineWidth=.5+rand()*2.4;ctx.stroke();bump.strokeStyle=i%2?"#c5c5c5":"#555555";bump.globalAlpha=.38;bump.lineWidth=1+rand()*1.5;bump.stroke();}ctx.globalAlpha=bump.globalAlpha=1;
+    for(let i=0;i<45;i++){const x=rand()*size,y=rand()*size,r=10+rand()*45;ctx.strokeStyle="rgba(255,255,255,.4)";ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x-r,y);ctx.lineTo(x+r,y);ctx.moveTo(x,y-r);ctx.lineTo(x,y+r);ctx.stroke();}
+  } else if (skin.pattern === "marble") {
+    const g=ctx.createLinearGradient(0,0,size,size);g.addColorStop(0,"rgba(5,34,26,.2)");g.addColorStop(.55,"rgba(45,121,91,.09)");g.addColorStop(1,"rgba(0,12,9,.27)");ctx.fillStyle=g;ctx.fillRect(0,0,size,size);
+    strokeWaves(62,"#d8c17d",.38,2.2,42,.007);strokeWaves(120,"#eff8d7",.09,1,19,.015);
+    for(let i=0;i<80;i++){let x=rand()*size,y=rand()*size;ctx.beginPath();ctx.moveTo(x,y);for(let j=0;j<5;j++){x+=(rand()-.5)*55;y+=(rand()-.5)*65;ctx.lineTo(x,y);}ctx.strokeStyle="rgba(2,24,17,.26)";ctx.lineWidth=1+rand()*2;ctx.stroke();}
+  } else if (skin.pattern === "circuit") {
+    const g=ctx.createLinearGradient(0,0,size,size);g.addColorStop(0,"rgba(255,255,255,.05)");g.addColorStop(1,"rgba(0,0,0,.36)");ctx.fillStyle=g;ctx.fillRect(0,0,size,size);
+    const step=64;
+    for(let y=16;y<size;y+=step)for(let x=16;x<size;x+=step){
+      ctx.strokeStyle="rgba(83,225,255,.55)";ctx.lineWidth=2.2;ctx.beginPath();ctx.moveTo(x,y);const horizontal=rand()>.5;ctx.lineTo(x+(horizontal?step*.55:0),y);ctx.lineTo(x+(horizontal?step*.55:step*.55),y+step*.5);ctx.stroke();
+      ctx.fillStyle="rgba(109,238,255,.88)";ctx.beginPath();ctx.arc(x,y,3.2,0,Math.PI*2);ctx.fill();
+      ctx.strokeStyle="rgba(255,255,255,.13)";ctx.lineWidth=1;ctx.strokeRect(x+11,y+12,step*.34,step*.3);
+      bump.strokeStyle="#a5a5a5";bump.lineWidth=2;bump.beginPath();bump.moveTo(x,y);bump.lineTo(x+step*.55,y);bump.lineTo(x+step*.55,y+step*.5);bump.stroke();bump.fillStyle="#a0a0a0";bump.fillRect(x-2,y-2,4,4);
+    }
+  } else if (skin.pattern === "sand") {
+    const g=ctx.createLinearGradient(0,0,size,size);g.addColorStop(0,"rgba(255,229,167,.3)");g.addColorStop(.5,"rgba(184,110,56,.06)");g.addColorStop(1,"rgba(83,40,24,.22)");ctx.fillStyle=g;ctx.fillRect(0,0,size,size);
+    strokeWaves(90,"#fff0c2",.22,2.2,24,.005);strokeWaves(105,"#99572e",.16,1.5,34,.004);
+    for(let i=0;i<16000;i++){const x=rand()*size,y=rand()*size;ctx.fillStyle=rand()>.5?"rgba(255,245,207,.35)":"rgba(92,52,26,.15)";ctx.fillRect(x,y,.5+rand()*1.5,.5+rand()*1.5);}
+  }
+  // Subtle roughness breakup prevents the board from looking like a flat color swatch.
+  let roughSeed = seed ^ 0x51ed270b;
+  const roughRand = () => { roughSeed += 0x6D2B79F5; let t=roughSeed; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; };
+  if (skin.pattern === "grain" || skin.pattern === "sand") {
+    for (let i=0;i<(skin.pattern === "sand" ? 5200 : 1800);i++) { const x=roughRand()*roughSize,y=roughRand()*roughSize; rough.fillStyle=roughRand()>.5?"rgba(255,255,255,.34)":"rgba(45,45,45,.18)"; rough.fillRect(x,y,skin.pattern === "sand" ? .8+roughRand()*1.6 : 1+roughRand()*3,skin.pattern === "sand" ? .8+roughRand()*1.6 : .5+roughRand()); }
+  } else if (skin.pattern === "ice" || skin.pattern === "marble") {
+    for (let i=0;i<70;i++) { const x=roughRand()*roughSize,y=roughRand()*roughSize; rough.beginPath();rough.moveTo(x,y);for(let j=0;j<4;j++)rough.lineTo(x+(roughRand()-.5)*46,y+(roughRand()-.5)*46);rough.strokeStyle=roughRand()>.5?"rgba(255,255,255,.24)":"rgba(28,28,28,.17)";rough.lineWidth=.5+roughRand()*1.4;rough.stroke(); }
+  } else {
+    for (let y=14;y<roughSize;y+=32) for(let x=14;x<roughSize;x+=32) { rough.strokeStyle="rgba(20,20,20,.12)";rough.lineWidth=.7;rough.strokeRect(x,y,8+roughRand()*12,8+roughRand()*12); }
+  }
+  const map = new THREE.CanvasTexture(canvas), bumpMap = new THREE.CanvasTexture(bumpCanvas), roughnessMap = new THREE.CanvasTexture(roughnessCanvas);
+  for (const texture of [map, bumpMap, roughnessMap]) {
+    texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+    texture.anisotropy = Math.min(16, webGLRenderer.capabilities.getMaxAnisotropy());
+    texture.generateMipmaps = true; texture.minFilter = THREE.LinearMipmapLinearFilter; texture.magFilter = THREE.LinearFilter;
+    texture.needsUpdate = true;
+  }
+  map.encoding = THREE.sRGBEncoding;
+  const pack = { map, bumpMap, roughnessMap };
+  boardSkinTextures.set(id, pack); return pack;
+}
+function applyBoardSkin(id) {
+  if (!BOARD_SKINS[id]) return;
+  activeBoardSkinId = id;
+  const skin = BOARD_SKINS[id], pack = id === "original" ? null : createBoardSkinTexture(id);
+  if (TERRAIN_TILE_MESHES) for (let r = 0; r < TERRAIN_TILE_MESHES.length; r++) {
+    const row = TERRAIN_TILE_MESHES[r];
+    for (let c = 0; c < row.length; c++) {
+      const tile = row[c];
+      if (!tile?.material) continue;
+      const original = tile.userData.originalBoardMaterial;
+      if (id === "original" && original) {
+        tile.material.map = original.map; tile.material.bumpMap = original.bumpMap; tile.material.roughnessMap = original.roughnessMap;
+        tile.material.bumpScale = original.bumpScale; tile.material.color.copy(original.color);
+        tile.material.roughness = original.roughness; tile.material.metalness = original.metalness;
+        tile.material.emissive.copy(original.emissive); tile.material.emissiveIntensity = original.emissiveIntensity;
+        tile.material.envMapIntensity = original.envMapIntensity;
+        tile.userData.base.copy(original.color);
+      } else {
+        tile.material.map = pack.map; tile.material.bumpMap = pack.bumpMap; tile.material.roughnessMap = pack.roughnessMap;
+        tile.material.bumpScale = skin.bumpScale;
+        tile.material.color.set((r + c) % 2 ? skin.colors[0] : skin.colors[1]);
+        tile.material.roughness = skin.roughness; tile.material.metalness = skin.metalness;
+        tile.material.emissive.set(skin.accent); tile.material.emissiveIntensity = skin.emissiveIntensity;
+        tile.material.envMapIntensity = id === "obsidian" || id === "arctic" ? 1.1 : .55;
+        tile.userData.base.copy(tile.material.color);
+      }
+      tile.material.needsUpdate = true;
+    }
+  }
+  updateBoardSkinSelection();
+}
+function renderBoardSkinPreview(canvas, id) {
+  const ctx = canvas.getContext("2d"), skin = BOARD_SKINS[id], size = canvas.width, cell = size / 5;
+  ctx.clearRect(0, 0, size, size); ctx.save();
+  for (let y=0;y<5;y++) for(let x=0;x<5;x++) {
+    const left=(x+y)%2===0;
+    const squareColor = left ? skin.colors[0] : skin.colors[1];
+    const squareGradient = ctx.createLinearGradient(x*cell, y*cell, (x+1)*cell, (y+1)*cell);
+    squareGradient.addColorStop(0, squareColor);
+    squareGradient.addColorStop(.48, "rgba(255,255,255,.10)");
+    squareGradient.addColorStop(1, "rgba(0,0,0,.18)");
+    ctx.fillStyle = squareGradient;
+    ctx.fillRect(x*cell+1,y*cell+1,cell-2,cell-2);
+    ctx.strokeStyle = "rgba(255,255,255,.075)"; ctx.lineWidth = .55;
+    ctx.strokeRect(x*cell+1.25,y*cell+1.25,cell-2.5,cell-2.5);
+    if(id === "original") {
+      ctx.strokeStyle="rgba(231,198,132,.22)";ctx.lineWidth=.65;
+      for(let k=0;k<3;k++){ctx.beginPath();ctx.moveTo(x*cell+3,y*cell+cell*(.24+k*.24));ctx.lineTo((x+1)*cell-3,y*cell+cell*(.2+k*.24));ctx.stroke();}
+    } else if(id === "walnut" || id === "sunset") {
+      ctx.strokeStyle=skin.accent;ctx.globalAlpha=.22;ctx.lineWidth=.7;
+      for(let k=1;k<4;k++){ctx.beginPath();ctx.moveTo(x*cell+2,y*cell+cell*k/4);ctx.lineTo((x+1)*cell-2,y*cell+cell*k/4+Math.sin(k+x)*1.2);ctx.stroke();}ctx.globalAlpha=1;
+    } else if(id === "arctic") {
+      ctx.strokeStyle="rgba(255,255,255,.7)";ctx.lineWidth=.8;ctx.beginPath();ctx.moveTo(x*cell+4,y*cell+3);ctx.lineTo(x*cell+cell*.56,y*cell+cell*.48);ctx.lineTo(x*cell+cell*.39,y*cell+cell*.78);ctx.stroke();
+    } else if(id === "emerald") {
+      ctx.strokeStyle=skin.accent;ctx.globalAlpha=.55;ctx.lineWidth=.7;ctx.beginPath();ctx.moveTo(x*cell,y*cell+cell*.7);ctx.bezierCurveTo(x*cell+cell*.3,y*cell+cell*.2,x*cell+cell*.7,y*cell+cell*.9,(x+1)*cell,y*cell+cell*.25);ctx.stroke();ctx.globalAlpha=1;
+    } else if(id === "obsidian") {
+      ctx.strokeStyle=skin.accent;ctx.lineWidth=.8;ctx.beginPath();ctx.moveTo(x*cell+2,y*cell+cell*.3);ctx.lineTo(x*cell+cell*.65,y*cell+cell*.3);ctx.lineTo(x*cell+cell*.65,y*cell+cell*.7);ctx.lineTo((x+1)*cell-2,y*cell+cell*.7);ctx.stroke();ctx.fillStyle=skin.accent;ctx.fillRect(x*cell+cell*.6,y*cell+cell*.25,2,2);
+    }
+  }
+  ctx.strokeStyle=skin.accent;ctx.globalAlpha=.72;ctx.lineWidth=1.4;ctx.strokeRect(1,1,size-2,size-2);ctx.restore();
+}
+function updateBoardSkinSelection() {
+  skinGrid?.querySelectorAll(".board-skin-card").forEach((card) => {
+    const selected = card.dataset.boardSkinId === activeBoardSkinId;
+    card.classList.toggle("selected", selected); card.setAttribute("aria-pressed", String(selected));
+  });
+}
+
 const glowTexture = (() => {
   const c = document.createElement("canvas");
   c.width = c.height = 128;
@@ -1887,6 +2120,12 @@ function buildGameWorld() {
       );
       m.castShadow = m.receiveShadow = true;
       m.userData.base = m.material.color.clone();
+      m.userData.originalBoardMaterial = {
+        map: m.material.map, bumpMap: m.material.bumpMap, roughnessMap: m.material.roughnessMap, bumpScale: m.material.bumpScale,
+        color: m.material.color.clone(), roughness: m.material.roughness, metalness: m.material.metalness,
+        emissive: m.material.emissive.clone(), emissiveIntensity: m.material.emissiveIntensity,
+        envMapIntensity: m.material.envMapIntensity,
+      };
       m.userData.disposeMaterial = true;
       m.scale.y = 0.001 * hh;
       animateTween(
@@ -1906,6 +2145,7 @@ function buildGameWorld() {
       TERRAIN_TILE_MESHES[r].push(m);
     }
   }
+  applyBoardSkin(activeBoardSkinId);
   PIECE_MESHES = [];
   PIECES.forEach((pc) => {
     const g = createPieceMesh(pc),
@@ -2020,7 +2260,13 @@ function clearMoveHighlights() {
   highlightedTileMeshes = [];
   TERRAIN_TILE_MESHES &&
     TERRAIN_TILE_MESHES.forEach((rw) =>
-      rw.forEach((m) => m.material.color.copy(m.userData.base)),
+      rw.forEach((m) => {
+        m.material.color.copy(m.userData.base);
+        if (m.userData.lit) m.userData.lit = 0;
+        const skin = BOARD_SKINS[activeBoardSkinId];
+        m.material.emissive.set(activeBoardSkinId === "original" ? 0x8a5a20 : skin.accent);
+        m.material.emissiveIntensity = activeBoardSkinId === "original" ? 0 : skin.emissiveIntensity;
+      }),
     );
 }
 function selectGamePiece(pc) {
@@ -2535,8 +2781,8 @@ let last = performance.now(),
 const skinModal = getElement("skin-modal");
 const skinGrid = getElement("skin-options-grid");
 const SKIN_PREVIEW_SIZE = 144;
-const SKIN_PREVIEW_FRAME_INTERVAL = 1000 / 30;
-const SKIN_PREVIEW_ROTATION_SPEED = 0.16;
+const SKIN_PREVIEW_FRAME_INTERVAL = 1000 / 20;
+const SKIN_PREVIEW_ROTATION_SPEED = 0.025;
 let skinModalOpen = false;
 let skinPreviewRenderer = null;
 let skinPreviewAccentMaterial = null;
@@ -2661,7 +2907,7 @@ function createSkinPreviewScene(skinId, index) {
 
   pieceGroup.rotation.x = -0.09;
   pieceGroup.rotation.z = 0.065;
-  pieceGroup.rotation.y = 0.45 + index * 0.12;
+  pieceGroup.rotation.y = 0;
   scene.add(pieceGroup);
 
   return {
@@ -2671,8 +2917,99 @@ function createSkinPreviewScene(skinId, index) {
       ?.getContext("2d"),
     scene,
     camera,
-    pieceGroup,
-    initialYaw: pieceGroup.rotation.y,
+    rotationGroup: pieceGroup,
+    initialYaw: 0,
+  };
+}
+
+function createBoardSkinPreviewScene(skinId, index) {
+  const skin = BOARD_SKINS[skinId];
+  if (!skin) return {};
+
+  // Use the same board dimensions, terrain heights, textures and material
+  // parameters as the live game. Only the camera and preview rotation differ.
+  const scene = new THREE.Scene();
+  scene.background = null;
+  scene.environment = skinPreviewEnvironmentTexture;
+  scene.add(new THREE.AmbientLight(0xffffff, 1.1));
+
+  const keyLight = new THREE.DirectionalLight(0xfff0dc, 2.0);
+  keyLight.position.set(7, 13, 8);
+  scene.add(keyLight);
+  const fillLight = new THREE.DirectionalLight(0xc9ddff, 0.45);
+  fillLight.position.set(-8, 7, -6);
+  scene.add(fillLight);
+
+  const rotationGroup = new THREE.Group();
+  scene.add(rotationGroup);
+
+  // Same frame geometry/material texture as buildGameWorld().
+  const frameHeight = BOARD_BASE_HEIGHT - 0.04;
+  const frame = new THREE.Mesh(
+    new THREE.BoxGeometry(BOARD_SIZE + 0.7, frameHeight, BOARD_SIZE + 0.7),
+    new THREE.MeshStandardMaterial({
+      map: BOARD_FRAME_TEXTURE,
+      bumpMap: BOARD_FRAME_TEXTURE,
+      bumpScale: 0.5,
+      roughness: 0.45,
+      envMapIntensity: 0.5,
+    }),
+  );
+  frame.position.y = frameHeight / 2 + 0.002;
+  frame.castShadow = frame.receiveShadow = true;
+  rotationGroup.add(frame);
+
+  const pack = skinId === "original" ? null : createBoardSkinTexture(skinId);
+  const boardOffset = (BOARD_SIZE - 1) / 2;
+  for (let r = 0; r < BOARD_SIZE; r++) {
+    for (let c = 0; c < BOARD_SIZE; c++) {
+      const heightLevel = TERRAIN_HEIGHTS?.[r]?.[c] ?? 0;
+      const hh = heightLevel * TERRAIN_HEIGHT_SCALE + 0.04;
+      const baseMaterial = new THREE.MeshStandardMaterial({
+        map: skinId === "original" ? TERRAIN_CELL_TEXTURES[(r * 7 + c * 3) % 3] : pack.map,
+        bumpMap: skinId === "original" ? TERRAIN_CELL_TEXTURES[(r * 7 + c * 3) % 3] : pack.bumpMap,
+        roughnessMap: skinId === "original" ? null : pack.roughnessMap,
+        bumpScale: skinId === "original" ? 0.5 : skin.bumpScale,
+        roughness: skinId === "original" ? 0.5 : skin.roughness,
+        metalness: skinId === "original" ? 0 : skin.metalness,
+        envMapIntensity: skinId === "original" ? 0.45 : (skinId === "obsidian" || skinId === "arctic" ? 1.1 : 0.55),
+        color: skinId === "original"
+          ? new THREE.Color().setHSL(0.085, 0.55, 0.5 + heightLevel * 0.07 + ((r + c) % 2 ? 0 : 0.05))
+          : new THREE.Color((r + c) % 2 ? skin.colors[0] : skin.colors[1]),
+        emissive: skinId === "original" ? 0x8a5a20 : skin.accent,
+        emissiveIntensity: skinId === "original" ? 0 : skin.emissiveIntensity,
+      });
+      const tile = new THREE.Mesh(
+        new THREE.BoxGeometry(0.97, hh, 0.97),
+        baseMaterial,
+      );
+      tile.position.set(
+        c - boardOffset,
+        frameHeight + hh / 2,
+        r - boardOffset,
+      );
+      tile.castShadow = tile.receiveShadow = true;
+      rotationGroup.add(tile);
+    }
+  }
+
+  // Keep the board almost stationary: only a very slow yaw gives it depth.
+  rotationGroup.rotation.x = 0;
+  rotationGroup.rotation.y = 0;
+  rotationGroup.rotation.z = 0;
+
+  const camera = new THREE.PerspectiveCamera(34, 1, 0.1, 60);
+  camera.position.set(11.5, 13.5, 14.5);
+  camera.lookAt(0, 0.65, 0);
+
+  const canvas = skinGrid.querySelector(`[data-board-preview-skin="${skinId}"]`);
+  return {
+    canvas,
+    context: canvas?.getContext("2d"),
+    scene,
+    camera,
+    rotationGroup,
+    initialYaw: 0,
   };
 }
 
@@ -2701,7 +3038,7 @@ function renderSkinPreviewFrame(now) {
   for (const preview of activeSkinPreviews) {
     if (!preview.canvas || !preview.context) continue;
 
-    preview.pieceGroup.rotation.y =
+    preview.rotationGroup.rotation.y =
       preview.initialYaw + elapsedSeconds * SKIN_PREVIEW_ROTATION_SPEED;
 
     skinPreviewRenderer.render(preview.scene, preview.camera);
@@ -2736,75 +3073,68 @@ function startSkinPreviewLoop() {
 
 function renderSkinModalOptions() {
   if (!skinGrid || !skinModalOpen) return;
-
-  destroySkinPreviews();
-  skinGrid.replaceChildren();
-
+  destroySkinPreviews(); skinGrid.replaceChildren();
+  const pieceHeading = document.createElement("h3");
+  pieceHeading.className = "skin-section-title"; pieceHeading.textContent = "Piece skins · 20";
+  skinGrid.appendChild(pieceHeading);
   Object.entries(PIECE_SKINS).forEach(([id, skin]) => {
     const card = document.createElement("div");
     card.className = `skin-card${id === activeSkinId ? " selected" : ""}`;
-    card.dataset.skinId = id;
-    card.setAttribute("role", "button");
-    card.setAttribute("tabindex", "0");
+    card.dataset.skinId = id; card.setAttribute("role", "button"); card.setAttribute("tabindex", "0");
     const t = window.traversalTranslate || ((key) => key);
     card.setAttribute("aria-label", t("game.selectSkin", { name: skin.label }));
     card.setAttribute("aria-pressed", String(id === activeSkinId));
-
     const canvas = document.createElement("canvas");
-    canvas.className = "skin-preview-canvas";
-    canvas.width = SKIN_PREVIEW_SIZE;
-    canvas.height = SKIN_PREVIEW_SIZE;
-    canvas.dataset.previewSkin = id;
-    canvas.setAttribute("aria-hidden", "true");
-
-    const name = document.createElement("div");
-    name.className = "skin-name";
-    name.textContent = skin.label;
-
-    card.append(canvas, name);
-    card.addEventListener("click", () => selectSkin(id));
+    canvas.className = "skin-preview-canvas"; canvas.width = SKIN_PREVIEW_SIZE; canvas.height = SKIN_PREVIEW_SIZE;
+    canvas.dataset.previewSkin = id; canvas.setAttribute("aria-hidden", "true");
+    const name = document.createElement("div"); name.className = "skin-name"; name.textContent = skin.label;
+    card.append(canvas, name); card.addEventListener("click", () => selectSkin(id));
     card.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        selectSkin(id);
-      }
+      if (event.key === "Enter" || event.key === " ") { event.preventDefault(); selectSkin(id); }
     });
+    skinGrid.appendChild(card);
+  });
+  const boardHeading = document.createElement("h3");
+  boardHeading.className = "skin-section-title board-skin-heading"; boardHeading.textContent = `Board skins · ${Object.keys(BOARD_SKINS).length}`;
+  skinGrid.appendChild(boardHeading);
+  Object.entries(BOARD_SKINS).forEach(([id, skin]) => {
+    const card = document.createElement("div");
+    card.className = `skin-card board-skin-card${id === activeBoardSkinId ? " selected" : ""}`;
+    card.dataset.boardSkinId = id; card.setAttribute("role", "button"); card.setAttribute("tabindex", "0");
+    card.setAttribute("aria-label", `Select board skin ${skin.label}`); card.setAttribute("aria-pressed", String(id === activeBoardSkinId));
+    const canvas = document.createElement("canvas");
+    canvas.className = "skin-preview-canvas board-preview-canvas"; canvas.width = SKIN_PREVIEW_SIZE; canvas.height = SKIN_PREVIEW_SIZE;
+    canvas.setAttribute("aria-hidden", "true");
+    const name = document.createElement("div"); name.className = "skin-name"; name.textContent = skin.label;
+    card.append(canvas, name);
+    canvas.dataset.boardPreviewSkin = id;
+    const choose = () => { applyBoardSkin(id); playSelectionSound(); window.CloseSkinModal(); };
+    card.addEventListener("click", choose);
+    card.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); choose(); } });
     skinGrid.appendChild(card);
   });
   try {
     skinPreviewRenderer = new THREE.WebGLRenderer({
-      canvas: document.createElement("canvas"),
-      alpha: true,
-      antialias: true,
-      powerPreference: "low-power",
-      preserveDrawingBuffer: true,
+      canvas: document.createElement("canvas"), alpha: true, antialias: true,
+      powerPreference: "low-power", preserveDrawingBuffer: true,
     });
-    skinPreviewRenderer.setPixelRatio(1);
-    skinPreviewRenderer.setSize(SKIN_PREVIEW_SIZE, SKIN_PREVIEW_SIZE, false);
-    skinPreviewRenderer.outputEncoding = THREE.sRGBEncoding;
-    skinPreviewRenderer.setClearColor(0x000000, 0);
+    skinPreviewRenderer.setPixelRatio(1); skinPreviewRenderer.setSize(SKIN_PREVIEW_SIZE, SKIN_PREVIEW_SIZE, false);
+    skinPreviewRenderer.outputEncoding = THREE.sRGBEncoding; skinPreviewRenderer.setClearColor(0x000000, 0);
     skinPreviewEnvironmentTexture = createSkinPreviewEnvironment();
-
-    skinPreviewAccentMaterial = createSkinMaterial({
-      color: "#1a1d24",
-      finish: "metal",
-      roughness: 0.35,
-      metalness: 0.85,
-      clearcoat: 0.3,
-    });
-
+    skinPreviewAccentMaterial = createSkinMaterial({ color: "#1a1d24", finish: "metal", roughness: 0.35, metalness: 0.85, clearcoat: 0.3 });
     let index = 0;
     for (const id of Object.keys(PIECE_SKINS)) {
       const preview = createSkinPreviewScene(id, index++);
       if (preview.canvas && preview.context) activeSkinPreviews.push(preview);
     }
+    index = 0;
+    for (const id of Object.keys(BOARD_SKINS)) {
+      const preview = createBoardSkinPreviewScene(id, index++);
+      if (preview.canvas && preview.context) activeSkinPreviews.push(preview);
+    }
     startSkinPreviewLoop();
-  } catch (error) {
-    console.warn("Skin previews could not be initialized:", error);
-    destroySkinPreviews();
-  }
-
-  updateSkinSelection();
+  } catch (error) { console.warn("Skin previews could not be initialized:", error); destroySkinPreviews(); }
+  updateSkinSelection(); updateBoardSkinSelection();
 }
 
 function selectSkin(skinId) {
