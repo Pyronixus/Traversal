@@ -83,21 +83,6 @@ python -m http.server 8000
 
 Then open <http://localhost:8000> in your browser.
 
-### Project structure
-
-```text
-Traversal-English/
-├── assets/
-│   ├── icon.png
-│   └── preview/
-│       ├── classic.png
-│       └── skins.png
-├── index.html      # Page structure and interface labels
-├── style.css       # Layout, typography, and responsive styling
-├── script.js       # Game rules, AI, rendering, animation, and audio
-└── README.md       # Project documentation
-```
-
 ## How to play
 
 ### Controls
